@@ -28,6 +28,19 @@ Para actualizar, **conserva el icono**: cierra y vuelve a abrir con internet. Si
 
 Abre **Calistenia** en la barra inferior. Tiene tres menús: **Registrar**, **Historial** y **Marcas**.
 
+### Buscar sin llenar la pantalla
+
+En **Calistenia → Registrar → Buscar ejercicio** hay un catálogo de **38 familias y 112 movimientos**, con variantes según el ejercicio. Incluye human flag, front/back lever, planche, dragon flag, handstand, headstand, frog stand, elbow lever, L-sit/V-sit, manna, cristo, maltese, victorian, fuerza en anillas, dominadas, flexiones, fondos, core, piernas y movilidad.
+
+- Busca en inglés o español, con o sin acentos: **human flag / bandera humana**, **handstand / pino**, **pull-ups / dominadas**, **push-ups / flexiones**, **dips / fondos**.
+- Puedes concretar una variante o equipo: **human flag full right**, **front lever piernas abiertas**, **ring dips**. Al elegir, revisa la variante y el equipo seleccionados.
+- El catálogo empieza mostrando 10 familias. Los filtros lo dividen en palancas, equilibrios, estáticos, tirón, empuje, core, piernas y movilidad. «Ver todas las familias» amplía la lista cuando lo necesitas.
+- **Recientes** permite recuperar tu configuración anterior, incluido equipo, lastre y asistencia. «De tu historial» encuentra también ejercicios propios que ya registraste.
+- El buscador funciona sin conexión. Las marcas y el historial de calistenia también tienen búsqueda en ambos idiomas.
+- Si falta un ejercicio o variante, puedes crearlo. El catálogo es amplio y ampliable; no pretende enumerar todas las combinaciones posibles.
+
+Los alias de búsqueda no cambian los nombres ni identificadores guardados: buscar el mismo ejercicio en otro idioma no duplica sus marcas.
+
 ### Registrar
 
 Elige Front lever, Back lever, Planche, Muscle-ups u Otro ejercicio. Cada serie guarda el movimiento, la variante y una medida:
@@ -37,7 +50,7 @@ Elige Front lever, Back lever, Planche, Muscle-ups u Otro ejercicio. Cada serie 
 - Planche lean: segundos.
 - Muscle-ups: reps, distinguiendo estricto y con kipping, en barra o anillas.
 
-Las variantes incluyen tuck, advanced tuck, one leg de cada lado, straddle y full, según el movimiento. «Otro / personalizado» permite usar tus propios nombres. Los ejercicios propios admiten segundos o reps.
+Las variantes incluyen tuck, advanced tuck, one leg de cada lado, straddle, half lay y full, según el movimiento. «Otro / personalizado» permite usar tus propios nombres. Los ejercicios propios admiten segundos o reps.
 
 En **Equipo, lastre y fecha** puedes indicar barra, anillas, suelo o paralelas, libras añadidas, asistencia y fecha. Si usas una banda u otra ayuda, escribe un detalle consistente, como «verde»: las marcas de esa asistencia se guardan por separado. No se convierten segundos en reps ni se suman estas series a las metas de Push/Pull/Legs.
 
@@ -107,7 +120,8 @@ No requiere dependencias, compilación, base de datos ni claves API.
 - `app.mjs`: interfaz, registro, favoritos, temporizador y copias.
 - `core.mjs`: cálculos, validación, calendario, rachas y estadísticas.
 - `skills-core.mjs`: catálogo, validación y marcas automáticas de calistenia.
-- `skills-ui.mjs`: registro, historial y marcas de calistenia.
+- `skills-ui.mjs`: registro, buscador, historial y marcas de calistenia.
+- `exercise-library.mjs`: catálogo, categorías y alias de búsqueda en inglés y español.
 - `style.css`: diseño adaptable.
 - `sw.js`: caché para uso sin conexión.
 - `manifest.webmanifest` e iconos: instalación en pantalla de inicio.

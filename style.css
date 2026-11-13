@@ -2158,3 +2158,189 @@ dialog::backdrop {
 .skill-records + .empty {
   margin-top: 20px;
 }
+.skill-search-launch {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 64px;
+  width: 100%;
+  text-align: left;
+  background: #edf2e4;
+  border: 1px solid #d3dfc3;
+  border-radius: 11px;
+  padding: 12px 14px;
+  margin: 17px 0 6px;
+  color: #3d5430;
+}
+.skill-search-launch > span:first-child {
+  font-size: 29px;
+  line-height: 1;
+}
+.skill-search-launch > span:nth-child(2) {
+  flex: 1;
+}
+.skill-search-launch strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+}
+.skill-search-launch small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #718162;
+}
+.skill-search-launch > b {
+  font-size: 18px;
+  font-weight: 400;
+}
+.library-intro {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+.library-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #b9c8a9;
+  border-radius: 11px;
+  padding: 0 13px;
+  min-height: 52px;
+}
+.library-search > span:not(.sr-only) {
+  font-size: 26px;
+  color: #687d55;
+}
+.library-search input {
+  border: 0;
+  outline: 0;
+  min-height: 50px;
+  width: 100%;
+  background: transparent;
+  font-size: 16px;
+  padding: 8px 0;
+  color: #252a22;
+  min-width: 0;
+}
+.library-categories {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 15px 1px 13px;
+  scrollbar-width: thin;
+}
+.library-categories button {
+  border: 1px solid #d7decb;
+  border-radius: 20px;
+  background: transparent;
+  font-size: 11px;
+  min-height: 38px;
+  padding: 7px 12px;
+  white-space: nowrap;
+  color: #758068;
+}
+.library-categories button[aria-pressed="true"] {
+  background: #e2ebd4;
+  color: #3b522b;
+  border-color: #b6c8a2;
+  font-weight: 650;
+}
+.library-section-title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 16px 0 10px;
+  display: flex;
+  justify-content: space-between;
+}
+.library-section-title > span {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.library-results,
+.library-recents {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.library-results > button,
+.library-recents > button {
+  border: 1px solid #dee3d4;
+  border-radius: 11px;
+  padding: 13px 12px;
+  min-height: 68px;
+  background: #fcfcf7;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.library-results > button > span {
+  flex: 1;
+  min-width: 0;
+}
+.library-results strong,
+.library-recents strong {
+  font-size: 12px;
+  display: block;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.library-results small,
+.library-recents small {
+  font-size: 10px;
+  display: block;
+  color: #7a846c;
+  margin-top: 4px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.library-results > button > b {
+  font-size: 17px;
+  font-weight: 400;
+  color: #6b7d58;
+}
+.library-recents > button {
+  background: #eaf0e0;
+  border-color: #d2dfc1;
+  display: block;
+  min-height: 59px;
+}
+.library-custom {
+  width: 100%;
+  margin-top: 13px;
+  font-size: 12px;
+}
+#skill-library-results .empty {
+  margin-top: 10px;
+  padding: 25px 15px;
+  font-size: 12px;
+}
+.library-results > button:active,
+.library-recents > button:active {
+  background: #dde9cd;
+}
+@media (max-width: 759px) {
+  .skill-search-launch {
+    padding: 11px 12px;
+    min-height: 61px;
+  }
+  .skill-search-launch strong {
+    font-size: 12px;
+  }
+  .skill-search-launch small {
+    font-size: 9px;
+  }
+}
+dialog:has([name="skill-library-query"]) {
+  height: min(85dvh, 750px);
+  max-width: 480px;
+}

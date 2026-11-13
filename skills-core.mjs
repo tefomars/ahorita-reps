@@ -1,3 +1,4 @@
+import { extraSkills } from "./exercise-library.mjs";
 // Skill records stay separate from Push/Pull/Legs repetition goals.
 export const skillCatalog = {
   front: {
@@ -9,6 +10,7 @@ export const skillCatalog = {
       "One leg · izquierda",
       "One leg · derecha",
       "Straddle",
+      "Half lay",
       "Full",
     ],
     movements: [
@@ -27,6 +29,7 @@ export const skillCatalog = {
       "One leg · izquierda",
       "One leg · derecha",
       "Straddle",
+      "Half lay",
       "Full",
     ],
     movements: [
@@ -44,6 +47,7 @@ export const skillCatalog = {
       "One leg · izquierda",
       "One leg · derecha",
       "Straddle",
+      "Half lay",
       "Full",
     ],
     movements: [
@@ -66,6 +70,7 @@ export const skillCatalog = {
       { name: "Negativas", metric: "reps", variations: ["Controlada"] },
     ],
   },
+  ...extraSkills,
   other: {
     name: "Otro ejercicio",
     apparatus: ["Barra", "Anillas", "Suelo", "Paralelas", "Otro"],

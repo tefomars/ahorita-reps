@@ -1,4 +1,10 @@
 import {
+  skillCategories,
+  infoFor,
+  searchSkillLibrary,
+  matchesSkillSearch,
+} from "./exercise-library.mjs";
+import {
   skillCatalog,
   skillSupports,
   defaultSkill,
@@ -69,14 +75,7 @@ export function createSkillsUI(ctx) {
     const metric = custom
       ? `<label class="field">Medida<select name="metric">${options(["seconds", "reps"], d.metric).replace(">seconds<", ">Segundos<").replace(">reps<", ">Repeticiones<")}</select></label>`
       : `<input type="hidden" name="metric" value="${d.metric}">`;
-    return `<label class="field">Progresión<select name="family">${Object.entries(
-      skillCatalog,
-    )
-      .map(
-        ([key, c]) =>
-          `<option value="${key}" ${key === d.family ? "selected" : ""}>${c.name}</option>`,
-      )
-      .join("")}</select></label>${customSelect(
+    return `<label class="field">Progresión<select name="family">${groupedFamilies(d.family)}</select></label>${customSelect(
       "movement",
       "Movimiento",
       c.movements
@@ -148,7 +147,7 @@ export function createSkillsUI(ctx) {
   }
   function logPage() {
     const list = skillEntriesOn(state(), draft.day);
-    return `<section class="skill-log-panel"><div class="skill-panel-heading"><span class="eyebrow">REGISTRAR UNA SERIE</span><h2>Tu práctica, a tu ritmo.</h2></div><form id="skill-entry-form">${formFields(draft)}<button class="primary wide" type="submit">Guardar serie</button></form></section><div class="section-heading"><h2>${draft.day === today() ? "Hoy en calistenia" : esc(shortDate(draft.day))}</h2><button class="text-button" data-action="skill-tab" data-tab="records">Ver mis marcas ↗</button></div>${dailyStats(list)}${rows(list)}`;
+    return `<section class="skill-log-panel"><div class="skill-panel-heading"><span class="eyebrow">REGISTRAR UNA SERIE</span><h2>Tu práctica, a tu ritmo.</h2></div><button type="button" class="skill-search-launch" data-action="skill-library-open"><span aria-hidden="true">⌕</span><span><strong>Buscar ejercicio</strong><small>Español o inglés · catálogo y recientes</small></span><b aria-hidden="true">↗</b></button><form id="skill-entry-form">${formFields(draft)}<button class="primary wide" type="submit">Guardar serie</button></form></section><div class="section-heading"><h2>${draft.day === today() ? "Hoy en calistenia" : esc(shortDate(draft.day))}</h2><button class="text-button" data-action="skill-tab" data-tab="records">Ver mis marcas ↗</button></div>${dailyStats(list)}${rows(list)}`;
   }
   function historyPage() {
     const list = skillEntriesOn(state(), historyDay).filter(
@@ -163,7 +162,7 @@ export function createSkillsUI(ctx) {
       ]
         .sort()
         .reverse();
-    return `<div class="skill-history-filters"><label class="field">Día<input type="date" name="skill-history-day" required max="${today()}" value="${historyDay}"></label><label class="field">Progresión<select name="skill-history-family">${familyFilter(historyFamily)}</select></label></div><p class="quiet">${esc(dateLabel(historyDay))}</p>${dailyStats(list)}${rows(list)}${
+    return `<div class="skill-history-filters"><label class="field">Día<input type="date" name="skill-history-day" required max="${today()}" value="${historyDay}"></label><label class="field">Progresión<select name="skill-history-family">${familyFilter(historyFamily)}</select></label></div><label class="field">Buscar en este día<input name="skill-history-search" type="search" value="${esc(historySearch)}" autocomplete="off" placeholder="Nombre en español o inglés"></label><div id="skill-history-results">${historyResults()}</div>${
       dates.length
         ? `<details class="skill-date-list"><summary>Días con práctica (${dates.length})</summary><div>${dates
             .slice(0, 90)
@@ -183,10 +182,7 @@ export function createSkillsUI(ctx) {
     return `<article class="skill-record-card"><div class="mini-heading"><span class="skill-family-label">${familyName(e)}</span><small>${r.series} ${r.series === 1 ? "serie" : "series"}</small></div><h2>${esc(e.movement)}</h2><p class="skill-record-context">${esc(context(e))}</p><div class="skill-record-marks"><div><span>${e.metric === "seconds" ? "Mejor tiempo" : "Máximas reps"}</span><strong>${num(r.best.value)}<small> ${e.metric === "seconds" ? "s" : "reps"}</small></strong><p>${load(r.best.weight)}</p>${recordDate(r.best)}</div><div><span>Máximo lastre</span><strong>${r.heaviest.weight ? `+${num(r.heaviest.weight)}<small> lb</small>` : "0<small> lb</small>"}</strong><p>${amount(r.heaviest)}${r.heaviest.weight ? "" : " · sin lastre"}</p>${recordDate(r.heaviest)}</div></div><details class="skill-load-details"><summary>Mejor serie por lastre (${r.byWeight.length})</summary>${r.byWeight.map((b) => `<div><span>${load(b.weight)}</span><strong>${amount(b)}</strong>${recordDate(b)}</div>`).join("")}</details></article>`;
   }
   function recordsPage() {
-    const records = allTimeRecords(state(), today()).filter(
-      (r) => recordFamily === "all" || r.exercise.family === recordFamily,
-    );
-    return `<div class="skill-record-intro"><span class="eyebrow">TUS MARCAS DE SIEMPRE</span><h2>Las ganas las pones tú.<br>Las marcas se guardan solas.</h2><p>Mejor serie y máximo lastre de todo tu historial, con fecha y detalle. Incluye tus registros de Push / Pull / Legs.</p></div><label class="field">Ver marcas de<select name="skill-record-family">${familyFilter(recordFamily, true)}</select></label><p class="note">Cada movimiento, variante, equipo y asistencia se compara por separado. Abre «por lastre» para comparar la misma carga. Las marcas cambian al editar o eliminar series.</p>${records.length ? `<div class="skill-records">${records.map(recordCard).join("")}</div>` : '<div class="empty"><strong>Tu primera marca empieza con una serie.</strong>Registra segundos o reps; calculamos los máximos automáticamente.</div>'}`;
+    return `<div class="skill-record-intro"><span class="eyebrow">TUS MARCAS DE SIEMPRE</span><h2>Las ganas las pones tú.<br>Las marcas se guardan solas.</h2><p>Mejor serie y máximo lastre de todo tu historial, con fecha y detalle. Incluye tus registros de Push / Pull / Legs.</p></div><label class="field">Ver marcas de<select name="skill-record-family">${familyFilter(recordFamily, true)}</select></label><p class="note">Cada movimiento, variante, equipo y asistencia se compara por separado. Abre «por lastre» para comparar la misma carga. Las marcas cambian al editar o eliminar series.</p><label class="field">Buscar mis marcas<input name="skill-record-search" type="search" value="${esc(recordSearch)}" autocomplete="off" placeholder="Ej. bandera, pull-ups, dominadas…"></label><div id="skill-record-results">${recordResults()}</div>`;
   }
   function page() {
     syncDay();
@@ -260,10 +256,149 @@ export function createSkillsUI(ctx) {
       `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields(entry)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
     );
   }
+  let libraryQuery = "",
+    libraryCategory = "all",
+    libraryExpanded = false,
+    libraryResults = [],
+    recordSearch = "",
+    historySearch = "";
+  function personalChoices() {
+    const seen = new Set(),
+      list = [];
+    for (const e of [...state().skills.entries].sort((a, b) => b.at - a.at)) {
+      const key = skillRecordKey(e) + "|" + e.weight;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(e);
+      }
+    }
+    return list;
+  }
+  function libraryContents() {
+    libraryResults = searchSkillLibrary(
+      skillCatalog,
+      libraryQuery,
+      libraryCategory,
+      libraryExpanded
+        ? 100
+        : libraryQuery
+          ? 20
+          : libraryCategory === "all"
+            ? 10
+            : 100,
+    );
+    const personal = personalChoices()
+      .filter(
+        (e) =>
+          (libraryCategory === "all" ||
+            infoFor(skillCatalog, e.family).category === libraryCategory) &&
+          matchesSkillSearch(skillCatalog, libraryQuery, e),
+      )
+      .slice(0, 6);
+    return `${personal.length ? `<div class="library-section-title">${libraryQuery ? "De tu historial" : "Recientes"}</div><div class="library-recents">${personal.map((e) => `<button data-action="skill-library-recent" data-id="${esc(e.id)}"><strong>${esc(skillCatalog[e.family].name === "Otro ejercicio" ? e.movement : skillCatalog[e.family].name + " · " + e.movement)}</strong><small>${esc(e.variation)} · ${load(e.weight)} · ${esc(e.apparatus)} · ${esc(e.support === "Libre" ? "Libre" : e.support + ": " + e.supportNote)}</small></button>`).join("")}</div>` : ""}<div class="library-section-title">${libraryQuery ? "Resultados" : libraryCategory === "all" ? "Explorar ejercicios" : skillCategories.find(([key]) => key === libraryCategory)?.[1]} <span>${libraryResults.length}</span></div>${libraryResults.length ? `<div class="library-results">${libraryResults.map((r, i) => `<button data-action="skill-library-result" data-index="${i}" aria-label="Elegir ${esc(r.name)} ${esc(r.movement)} ${esc(r.variation)}"><span><strong>${esc(r.name)}${libraryQuery ? " · " + esc(r.movement) : ""}</strong><small>${esc(r.es)}${libraryQuery ? " · " + esc(r.description) : ""}</small><small>${r.metric === "seconds" ? "Segundos" : "Reps"} · ${r.variantCount} ${r.variantCount === 1 ? "variante" : "variantes"}${libraryQuery ? " · " + esc(r.variation) : ""}</small></span><b aria-hidden="true">↗</b></button>`).join("")}</div>` : personal.length ? '<p class="note">Sin coincidencias adicionales en el catálogo.</p>' : '<div class="empty"><strong>No encontré ese nombre.</strong>Prueba otro término o crea tu propio ejercicio.</div>'}${!libraryQuery && libraryCategory === "all" && !libraryExpanded ? '<button class="secondary wide" data-action="skill-library-all">Ver todas las familias</button>' : ""}<button class="text-button library-custom" data-action="skill-library-custom">+ Crear ejercicio o variante propios</button>`;
+  }
+  function updateLibrary() {
+    const target = document.querySelector("#skill-library-results");
+    if (target) target.innerHTML = libraryContents();
+    document
+      .querySelectorAll('[data-action="skill-library-category"]')
+      .forEach((b) =>
+        b.setAttribute(
+          "aria-pressed",
+          String(b.dataset.category === libraryCategory),
+        ),
+      );
+  }
+  function openLibrary() {
+    const f = document.querySelector("#skill-entry-form");
+    if (f) draft = readForm(f);
+    libraryQuery = "";
+    libraryCategory = "all";
+    libraryExpanded = false;
+    openSheet(
+      "Buscar ejercicio",
+      `<p class="library-intro">${Object.keys(skillCatalog).length - 1} familias. Busca en español o inglés; las variantes aparecen al elegir.</p><label class="library-search"><span class="sr-only">Buscar ejercicio en español o inglés</span><span aria-hidden="true">⌕</span><input name="skill-library-query" type="search" autocomplete="off" placeholder="Human flag, bandera, pino…" aria-controls="skill-library-results"></label><div class="library-categories" aria-label="Familias de ejercicios">${skillCategories.map(([key, label]) => `<button data-action="skill-library-category" data-category="${key}" aria-pressed="${key === libraryCategory}">${label}</button>`).join("")}</div><div id="skill-library-results">${libraryContents()}</div>`,
+    );
+    document.querySelector("[name=skill-library-query]").focus();
+  }
+  function chooseLibrary(config) {
+    draft = { ...config, day: draft.day || today(), value: "", notes: "" };
+    document.querySelector("#sheet").close();
+    render();
+    document
+      .querySelector("#skill-entry-form [name=value]")
+      ?.focus({ preventScroll: true });
+  }
+  function groupedFamilies(selected) {
+    return [
+      ...skillCategories.filter(([key]) => key !== "all"),
+      ["other", "Personalizado"],
+    ]
+      .map(([key, label]) => {
+        const entries = Object.entries(skillCatalog).filter(
+          ([id]) => infoFor(skillCatalog, id).category === key,
+        );
+        return entries.length
+          ? `<optgroup label="${label}">${entries.map(([id, c]) => `<option value="${id}" ${id === selected ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</optgroup>`
+          : "";
+      })
+      .join("");
+  }
+  function recordResults() {
+    const records = allTimeRecords(state(), today()).filter(
+      (r) =>
+        (recordFamily === "all" || r.exercise.family === recordFamily) &&
+        matchesSkillSearch(skillCatalog, recordSearch, r.exercise),
+    );
+    return `<p class="quiet" role="status">${records.length} ${records.length === 1 ? "ejercicio" : "ejercicios"}</p>${records.length ? `<div class="skill-records">${records.map(recordCard).join("")}</div>` : '<div class="empty"><strong>Sin marcas con ese filtro.</strong>Busca otro nombre o registra tu primera serie.</div>'}`;
+  }
+  function historyResults() {
+    const list = skillEntriesOn(state(), historyDay).filter(
+      (e) =>
+        (historyFamily === "all" || e.family === historyFamily) &&
+        matchesSkillSearch(skillCatalog, historySearch, e),
+    );
+    return `<p class="quiet">${esc(dateLabel(historyDay))}</p>${dailyStats(list)}${rows(list)}`;
+  }
   function handleClick(e) {
     const b = e.target.closest('[data-action^="skill-"]');
     if (!b) return;
     const a = b.dataset.action;
+    if (a === "skill-library-open") openLibrary();
+    if (a === "skill-library-category") {
+      libraryCategory = b.dataset.category;
+      libraryExpanded = false;
+      updateLibrary();
+    }
+    if (a === "skill-library-all") {
+      libraryExpanded = true;
+      updateLibrary();
+    }
+    if (a === "skill-library-result") {
+      const r = libraryResults[Number(b.dataset.index)];
+      if (r)
+        chooseLibrary({
+          ...defaultSkill(r.family),
+          movement: r.movement,
+          variation: r.variation,
+          metric: r.metric,
+          apparatus: r.apparatus,
+        });
+    }
+    if (a === "skill-library-recent") {
+      const e = state().skills.entries.find((e) => e.id === b.dataset.id);
+      if (e) {
+        const { id, at, day, value, ...config } = e;
+        chooseLibrary(config);
+      }
+    }
+    if (a === "skill-library-custom") {
+      chooseLibrary(defaultSkill("other"));
+      document
+        .querySelector("#skill-entry-form [name=customMovement]")
+        ?.focus({ preventScroll: true });
+    }
+
     if (a === "skill-tab") {
       tab = b.dataset.tab;
       if (!["log", "history", "records"].includes(tab)) tab = "log";
@@ -392,6 +527,24 @@ export function createSkillsUI(ctx) {
       toast(err.message);
     }
   }
+  function handleInput(e) {
+    if (e.target.name === "skill-library-query") {
+      libraryQuery = e.target.value;
+      updateLibrary();
+    }
+    if (e.target.name === "skill-record-search") {
+      recordSearch = e.target.value;
+      const target = document.querySelector("#skill-record-results");
+      if (target) target.innerHTML = recordResults();
+    }
+    if (e.target.name === "skill-history-search") {
+      historySearch = e.target.value;
+      const target = document.querySelector("#skill-history-results");
+      if (target) target.innerHTML = historyResults();
+    }
+  }
+  document.querySelector("#main").addEventListener("input", handleInput);
+  document.querySelector("#sheet").addEventListener("input", handleInput);
   document.querySelector("#main").addEventListener("click", handleClick);
   document.querySelector("#sheet").addEventListener("click", handleClick);
   document.querySelector("#main").addEventListener("change", handleChange);
@@ -409,6 +562,8 @@ export function createSkillsUI(ctx) {
       draft = { ...state().skills.selected, day: today(), value: "" };
       historyDay = today();
       lastToday = today();
+      recordSearch = "";
+      historySearch = "";
     },
   };
 }
