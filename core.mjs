@@ -1,3 +1,9 @@
+import {
+  defaultSkillStore,
+  validateSkillStore,
+  skillEntriesOn,
+  skillTotals,
+} from "./skills-core.mjs";
 export const groups = ["push", "pull", "legs"];
 export const exercises = {
   push: [
@@ -131,9 +137,11 @@ export function upgrade(s) {
   s.schedules ??= [];
   s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
   s.preferences ??= { timerSound: false };
+  s.skills ??= defaultSkillStore();
   return s;
 }
 export function validateExtras(s) {
+  if (s.skills !== undefined) validateSkillStore(s.skills);
   if (
     s.favorites !== undefined &&
     (!Array.isArray(s.favorites) ||
@@ -210,7 +218,12 @@ export function startOfWeek(key) {
   return shiftDay(key, -((new Date(key + "T12:00:00").getDay() + 6) % 7));
 }
 export function streakStats(s, today, group = null) {
-  const keys = Object.keys(s.days)
+  const keys = [
+    ...new Set([
+      ...Object.keys(s.days),
+      ...(s.skills?.entries ?? []).map((e) => e.day),
+    ]),
+  ]
     .filter((k) => k <= today)
     .sort();
   if (!keys.length) return { current: 0, best: 0, total: 0 };
@@ -222,7 +235,7 @@ export function streakStats(s, today, group = null) {
       goal = d?.goals[group] ?? (group ? goalsForDate(s, key)[group] : 0);
     const qualifies = group
       ? goal > 0 && totals(d?.entries ?? [], group).count >= goal
-      : !!d?.entries.length;
+      : hasActivity(s, key);
     const rest =
       group &&
       (d
@@ -247,8 +260,8 @@ export function weeklySummary(s, start, today) {
     return {
       key,
       future: key > today,
-      active: entries.length > 0,
-      series: entries.length,
+      active: !(key > today) && hasActivity(s, key),
+      series: entries.length + skillEntriesOn(s, key).length,
       counts: Object.fromEntries(
         groups.map((g) => [g, totals(entries, g).count]),
       ),
@@ -276,6 +289,11 @@ export function weeklySummary(s, start, today) {
     active: days.filter((d) => d.active).length,
     series: days.reduce((n, d) => n + d.series, 0),
     met: days.reduce((n, d) => n + d.met, 0),
+    skills: skillTotals(
+      (s.skills?.entries ?? []).filter(
+        (e) => e.day >= start && e.day <= shiftDay(start, 6) && e.day <= today,
+      ),
+    ),
     elapsed,
     counts: Object.fromEntries(
       groups.map((g) => [g, days.reduce((n, d) => n + d.counts[g], 0)]),
@@ -311,12 +329,24 @@ export function personalRecords(s, today) {
 export function backupDue(s, today, now = Date.now()) {
   const b = s.backup;
   if (!b?.enabled || (b.snoozedUntil ?? 0) > now) return false;
-  const active = Object.entries(s.days).filter(
-    ([key, d]) => key <= today && d.entries.length,
-  );
+  const keys = [
+    ...new Set([
+      ...Object.keys(s.days),
+      ...(s.skills?.entries ?? []).map((e) => e.day),
+    ]),
+  ];
+  const active = keys.filter((key) => key <= today && hasActivity(s, key));
   if (!b.lastExportAt) return active.length >= 3;
   return (
     now - b.lastExportAt >= 7 * 86400000 &&
-    active.some(([, d]) => d.entries.some((e) => e.at > b.lastExportAt))
+    active.some(
+      (key) =>
+        (s.days[key]?.entries ?? []).some((e) => e.at > b.lastExportAt) ||
+        skillEntriesOn(s, key).some((e) => e.at > b.lastExportAt),
+    )
   );
+}
+
+export function hasActivity(s, key) {
+  return !!s.days[key]?.entries.length || skillEntriesOn(s, key).length > 0;
 }

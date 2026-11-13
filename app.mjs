@@ -1,3 +1,5 @@
+import { createSkillsUI } from "./skills-ui.mjs";
+import { skillEntriesOn } from "./skills-core.mjs";
 import {
   groups,
   exercises,
@@ -17,6 +19,7 @@ import {
   weeklySummary,
   personalRecords,
   backupDue,
+  hasActivity,
 } from "./core.mjs";
 const KEY = "ahorita.v1",
   labels = { push: "Push", pull: "Pull", legs: "Legs" },
@@ -51,6 +54,29 @@ try {
 upgrade(state);
 let progressWeek = startOfWeek(activeDay),
   recordGroup = "all";
+const skillsUI = createSkillsUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  save,
+  toast,
+  render,
+  openSheet,
+  esc,
+  dateLabel,
+  beforeMutation: rollover,
+  showSkills: () => {
+    view = "calistenia";
+    render();
+    window.scrollTo(0, 0);
+  },
+  openBaseDay: (key) => {
+    historyDay = key;
+    calendarMonth = key.slice(0, 7);
+    view = "historial";
+    render();
+    window.scrollTo(0, 0);
+  },
+});
 const weightLabel = (w) => (w ? `+${w} lb` : "Sin peso añadido");
 const sideLabel = (s) =>
   s === "left" ? "Izquierda" : s === "right" ? "Derecha" : "Por pierna";
@@ -106,7 +132,9 @@ function render() {
         ? history()
         : view === "progreso"
           ? progress()
-          : settings();
+          : view === "calistenia"
+            ? skillsUI.page()
+            : settings();
 }
 function intro(title, sub, eyebrow = "A TU RITMO") {
   return `<div class="intro"><div><p class="eyebrow">${esc(eyebrow)}</p><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div></div>`;
@@ -152,7 +180,7 @@ function history() {
     })
     .join(
       "",
-    )}</div><p class="note streak-explainer">Las rachas de Push, Pull y Legs cuentan días cumpliendo su meta. Los descansos con meta 0 conservan esa racha sin sumar días. Hoy tienes hasta medianoche para continuar.</p>${calendar()}<div class="section-heading"><h2>Detalle del día</h2></div><div class="history-date"><input aria-label="Día del historial" type="date" id="history-date" max="${activeDay}" value="${historyDay}"><span class="quiet">${d.entries.length} series</span></div><div class="history-stats">${groups.map((g) => `<div class="stat"><small>${labels[g]}</small><strong>${totals(d.entries, g).count}</strong> <span>/ ${d.goals[g]}${g === "legs" ? " por lado" : ""}</span></div>`).join("")}</div><p class="quiet">${esc(dateLabel(historyDay))}</p>${d.entries.length ? entries(d.entries, historyDay) : '<div class="empty"><strong>Sin series este día.</strong>El calendario se llena con cada día de actividad.</div>'}</div>`;
+    )}</div><p class="note streak-explainer">Las rachas de Push, Pull y Legs cuentan días cumpliendo su meta. Los descansos con meta 0 conservan esa racha sin sumar días. Hoy tienes hasta medianoche para continuar.</p>${calendar()}<div class="section-heading"><h2>Detalle del día</h2></div><div class="history-date"><input aria-label="Día del historial" type="date" id="history-date" max="${activeDay}" value="${historyDay}"><span class="quiet">${d.entries.length + skillEntriesOn(state, historyDay).length} series</span></div><div class="history-stats">${groups.map((g) => `<div class="stat"><small>${labels[g]}</small><strong>${totals(d.entries, g).count}</strong> <span>/ ${d.goals[g]}${g === "legs" ? " por lado" : ""}</span></div>`).join("")}</div><p class="quiet">${esc(dateLabel(historyDay))}</p>${d.entries.length ? entries(d.entries, historyDay) : skillEntriesOn(state, historyDay).length ? '<p class="note">Tu práctica de calistenia de este día está abajo.</p>' : '<div class="empty"><strong>Sin series este día.</strong>El calendario se llena con cada día de actividad.</div>'}${skillsUI.daySection(historyDay)}</div>`;
 }
 function calendar() {
   const first = new Date(calendarMonth + "-01T12:00:00"),
@@ -168,7 +196,7 @@ function calendar() {
   for (let day = 1; day <= count; day++) {
     const key = calendarMonth + "-" + String(day).padStart(2, "0"),
       d = state.days[key],
-      active = !!d?.entries.length;
+      active = hasActivity(state, key);
     const completed = d
       ? groups.filter(
           (g) => d.goals[g] > 0 && totals(d.entries, g).count >= d.goals[g],
@@ -395,18 +423,20 @@ $("#main").addEventListener("change", async (e) => {
       const incoming = upgrade(validateBackup(JSON.parse(await file.text())));
       openSheet(
         "Restaurar copia",
-        `<p>Esta copia contiene ${Object.values(incoming.days).reduce((n, d) => n + d.entries.length, 0)} series. Reemplazará los datos de este dispositivo.</p><p class="note">Exporta una copia de tus datos actuales antes de reemplazarlos.</p><button class="secondary wide" id="pre-export">Exportar datos actuales</button><button class="primary wide" id="confirm-import">Reemplazar con esta copia</button>`,
+        `<p>Esta copia contiene ${Object.values(incoming.days).reduce((n, d) => n + d.entries.length, incoming.skills.entries.length)} series. Reemplazará los datos de este dispositivo.</p><p class="note">Exporta una copia de tus datos actuales antes de reemplazarlos.</p><button class="secondary wide" id="pre-export">Exportar datos actuales</button><button class="primary wide" id="confirm-import">Reemplazar con esta copia</button>`,
       );
       $("#pre-export").onclick = exportData;
       $("#confirm-import").onclick = () => {
         const previous = state;
         state = incoming;
+        skillsUI.reset();
         if (save()) {
           $("#sheet").close();
           render();
           toast("Copia restaurada");
         } else {
           state = previous;
+          skillsUI.reset();
           toast("No se pudo restaurar. Los datos anteriores se conservaron.");
         }
       };
@@ -469,6 +499,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === KEY && e.newValue) {
     try {
       state = upgrade(validateBackup(JSON.parse(e.newValue)));
+      skillsUI.reset();
       render();
     } catch {
       toast("No se pudo leer el cambio de otra pestaña.");
@@ -479,7 +510,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v4");
+    const cache = await caches.open("ahorita-v5");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -525,7 +556,7 @@ function progress() {
     })
     .join(
       "",
-    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section><p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras muestran reps; Legs cuenta por lado. Toca un día para ver el detalle.</p><section class="records-section"><div class="section-heading"><h2>Récords personales</h2><span>Mejor serie</span></div><div class="record-filters" aria-label="Filtrar récords"><button data-action="record-filter" data-group="all" aria-pressed="${recordGroup === "all"}">Todos</button>${groups.map((g) => `<button data-action="record-filter" data-group="${g}" aria-pressed="${recordGroup === g}">${labels[g]}</button>`).join("")}</div><p class="note">Comparamos el mismo ejercicio, peso y lado. Si corriges una serie, el récord se recalcula.</p>${records.length ? `<div class="entries">${records.map((r) => `<button class="record-row" data-action="week-day" data-day="${r.day}"><span class="badge ${r.group}">${icons[r.group]}</span><span class="entry-info"><strong>${esc(r.exercise)}</strong><small>${weightLabel(r.weight)}${r.group === "legs" ? " · " + sideLabel(r.side) : ""}<br>${short(r.day)} ${r.day.slice(0, 4)}</small></span><span class="record-reps">${r.reps}<small>reps ↗</small></span></button>`).join("")}</div>` : '<div class="empty"><strong>Aquí empieza tu próxima marca.</strong>Registra una serie para crear tu primer récord.</div>'}</section></div>`;
+    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section>${summary.skills.series ? `<div class="skill-week-summary"><strong>Calistenia esta semana</strong><span>${summary.skills.series} series · ${summary.skills.seconds} s de holds · ${summary.skills.reps} reps</span><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>` : ""}<p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras muestran reps; Legs cuenta por lado. Toca un día para ver el detalle.</p><section class="records-section"><div class="section-heading"><h2>Récords personales</h2><button class="text-button" data-action="skill-open-records">Todas mis marcas ↗</button></div><div class="record-filters" aria-label="Filtrar récords"><button data-action="record-filter" data-group="all" aria-pressed="${recordGroup === "all"}">Todos</button>${groups.map((g) => `<button data-action="record-filter" data-group="${g}" aria-pressed="${recordGroup === g}">${labels[g]}</button>`).join("")}</div><p class="note">Comparamos el mismo ejercicio, peso y lado. Si corriges una serie, el récord se recalcula.</p>${records.length ? `<div class="entries">${records.map((r) => `<button class="record-row" data-action="week-day" data-day="${r.day}"><span class="badge ${r.group}">${icons[r.group]}</span><span class="entry-info"><strong>${esc(r.exercise)}</strong><small>${weightLabel(r.weight)}${r.group === "legs" ? " · " + sideLabel(r.side) : ""}<br>${short(r.day)} ${r.day.slice(0, 4)}</small></span><span class="record-reps">${r.reps}<small>reps ↗</small></span></button>`).join("")}</div>` : '<div class="empty"><strong>Aquí empieza tu próxima marca.</strong>Registra una serie para crear tu primer récord.</div>'}</section></div>`;
 }
 function settings() {
   const plan = weekPlan(state, activeDay),

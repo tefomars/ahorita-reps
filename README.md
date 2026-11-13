@@ -24,6 +24,39 @@ Para actualizar, **conserva el icono**: cierra y vuelve a abrir con internet. Si
 - Las series favoritas guardan grupo, ejercicio, peso y reps. Créalas en Hoy o Ajustes y tócalas en Hoy para sumar esa serie completa. Edita y elimina favoritas en Ajustes.
 - Puedes editar o eliminar series desde ··· en el historial. Deshacer revierte la acción indicada durante unos segundos.
 
+## Calistenia: progresiones y marcas automáticas
+
+Abre **Calistenia** en la barra inferior. Tiene tres menús: **Registrar**, **Historial** y **Marcas**.
+
+### Registrar
+
+Elige Front lever, Back lever, Planche, Muscle-ups u Otro ejercicio. Cada serie guarda el movimiento, la variante y una medida:
+
+- Static hold: segundos, con decimales si los necesitas (por ejemplo 12.5 s).
+- Lever raises, pulls, negativas y planche pushups: repeticiones.
+- Planche lean: segundos.
+- Muscle-ups: reps, distinguiendo estricto y con kipping, en barra o anillas.
+
+Las variantes incluyen tuck, advanced tuck, one leg de cada lado, straddle y full, según el movimiento. «Otro / personalizado» permite usar tus propios nombres. Los ejercicios propios admiten segundos o reps.
+
+En **Equipo, lastre y fecha** puedes indicar barra, anillas, suelo o paralelas, libras añadidas, asistencia y fecha. Si usas una banda u otra ayuda, escribe un detalle consistente, como «verde»: las marcas de esa asistencia se guardan por separado. No se convierten segundos en reps ni se suman estas series a las metas de Push/Pull/Legs.
+
+Registra una serie cada vez que la completes. La app recuerda la configuración. «Repetir hoy» copia una serie anterior al día actual. Historial permite revisar días y editar o eliminar registros. Se pueden registrar días anteriores; los registros nuevos no admiten fechas futuras.
+
+### Marcas, sin registrarlas a mano
+
+**Calistenia → Marcas** calcula automáticamente, desde todo tu historial:
+
+- **Mejor tiempo** o **máximas reps** para cada movimiento, variante, equipo y asistencia, con el lastre y la fecha de esa serie.
+- **Máximo lastre** usado en una serie, mostrando las reps o segundos que completaste con él.
+- **Mejor serie por lastre**, para comparar exactamente la misma carga.
+
+Tuck y full, holds y raises, barra y anillas, libre y asistido tienen marcas separadas. Si dos marcas tienen el mismo tiempo/reps, se muestra la de más lastre. A igual lastre, se elige la serie de más segundos/reps. Editar o borrar una serie recalcula las marcas. No hay que ingresar máximos por separado.
+
+Este menú también incluye los máximos de tus ejercicios de **Push/Pull/Legs**, tanto reps como lastre. Los filtros permiten ver una progresión o los ejercicios de los contadores generales. Toca la fecha de una marca para ver las series de ese día.
+
+La práctica de calistenia también cuenta como actividad en el calendario y en la racha general. Progreso incluye sus series, segundos y reps en un resumen semanal separado; las metas y barras de Push/Pull/Legs mantienen sus propias reps.
+
 ## Calendario de entrenamiento
 
 Ajustes → Tu semana de entrenamiento permite marcar los grupos de cada día, de lunes a domingo. Un grupo desmarcado descansa y su meta es 0 ese día. El calendario nuevo se aplica **desde hoy** y conserva los días anteriores. Puedes entrenar también en un día de descanso: las series se guardan igual.
@@ -52,7 +85,7 @@ El tiempo restante se calcula con una hora de finalización, por lo que al volve
 
 ## Copias de seguridad
 
-**Ajustes → Exportar copia** descarga un archivo JSON con historial, metas, favoritas, calendario y preferencias. Guárdalo en Archivos o iCloud Drive. Importar copia permite restaurarlo, previa confirmación, y **reemplaza** los datos actuales. Las copias de las primeras versiones siguen siendo compatibles.
+**Ajustes → Exportar copia** descarga un archivo JSON con historial (incluida calistenia), metas, favoritas, calendario y preferencias. Guárdalo en Archivos o iCloud Drive. Importar copia permite restaurarlo, previa confirmación, y **reemplaza** los datos actuales. Las copias de las primeras versiones siguen siendo compatibles.
 
 La app ofrece un recordatorio después de 3 días con actividad. Tras exportar, vuelve a recordarte después de 7 días si hay datos nuevos. Puedes posponerlo 7 días o desactivarlo. Son recordatorios dentro de la app, no notificaciones del iPhone. «Última exportación preparada» indica que se inició la descarga: comprueba que guardaste el archivo.
 
@@ -73,6 +106,8 @@ No requiere dependencias, compilación, base de datos ni claves API.
 - `index.html`: estructura, navegación y metadatos para iPhone.
 - `app.mjs`: interfaz, registro, favoritos, temporizador y copias.
 - `core.mjs`: cálculos, validación, calendario, rachas y estadísticas.
+- `skills-core.mjs`: catálogo, validación y marcas automáticas de calistenia.
+- `skills-ui.mjs`: registro, historial y marcas de calistenia.
 - `style.css`: diseño adaptable.
 - `sw.js`: caché para uso sin conexión.
 - `manifest.webmanifest` e iconos: instalación en pantalla de inicio.
