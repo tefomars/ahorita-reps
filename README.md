@@ -1,4 +1,4 @@
-# Ahorita
+# Reps
 
 Una app personal de repeticiones para iPhone. Push, Pull y Legs; metas diarias, variantes y peso añadido en libras. Sin suscripciones, anuncios, servidores de datos ni rastreadores.
 
