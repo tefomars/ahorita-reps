@@ -135,7 +135,7 @@ export function createSkillsUI(ctx) {
         ? ""
         : d.movement,
       custom,
-    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" ${d.outcome === "attempt" ? "disabled" : "required"} value="${d.outcome === "attempt" ? "" : (d.value ?? "")}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><div data-attempt-counter ${d.outcome === "attempt" ? "hidden" : ""}>${counterFields(d)}</div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas${favorite ? "" : " e intentos"}</summary>${favorite ? "" : `<label class="check-label"><input type="checkbox" name="attempt" ${d.outcome === "attempt" ? "checked" : ""}> Intento no completado</label><p class="note">Guarda la práctica sin sumar reps, segundos ni récords.</p>`}<label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
+    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${favorite ? (d.metric === "seconds" ? "Botón habitual · segundos" : "Botón habitual · reps") : d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" ${d.outcome === "attempt" ? "disabled" : "required"} value="${d.outcome === "attempt" ? "" : (d.value ?? "")}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><div data-attempt-counter ${d.outcome === "attempt" ? "hidden" : ""}>${counterFields(d)}</div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas${favorite ? "" : " e intentos"}</summary>${favorite ? "" : `<label class="check-label"><input type="checkbox" name="attempt" ${d.outcome === "attempt" ? "checked" : ""}> Intento no completado</label><p class="note">Guarda la práctica sin sumar reps, segundos ni récords.</p>`}<label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
   }
   function readForm(form) {
     const f = new FormData(form),
@@ -336,6 +336,7 @@ export function createSkillsUI(ctx) {
       `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields({ ...entry, counterGroup: entry.outcome === "attempt" ? (entry.counterGroup ?? suggestedCounterGroup(entry)) : skillCounterGroup(entry), counterSide: entry.counterSide ?? inferCounterSide(entry) })}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
     );
   }
+  let libraryChoose = null;
   let libraryQuery = "",
     libraryCategory = "all",
     libraryExpanded = false,
@@ -390,9 +391,10 @@ export function createSkillsUI(ctx) {
         ),
       );
   }
-  function openLibrary() {
+  function openLibrary(onChoose = null) {
+    libraryChoose = onChoose;
     const f = document.querySelector("#skill-entry-form");
-    if (f) draft = readForm(f);
+    if (f && !onChoose) draft = readForm(f);
     libraryQuery = "";
     libraryCategory = "all";
     libraryExpanded = false;
@@ -403,6 +405,14 @@ export function createSkillsUI(ctx) {
     document.querySelector("[name=skill-library-query]").focus();
   }
   function chooseLibrary(config) {
+    const { id, day, at, sessionId, sessionStepId, outcome, ...clean } = config;
+    config = clean;
+    if (libraryChoose) {
+      const choose = libraryChoose;
+      libraryChoose = null;
+      choose(config);
+      return;
+    }
     draft = {
       ...counterDefaults(config),
       day: draft.day || today(),
@@ -503,12 +513,31 @@ export function createSkillsUI(ctx) {
       state().skillFavorites.push(favorite);
       appendShortcut(state(), "skill:" + favorite.id);
     }
+    state().preferences.activeShortcut = "skill:" + favorite.id;
     if (save()) {
       document.querySelector("#sheet").close();
       render();
-      toast("Favorita guardada en Hoy");
+      toast("Ejercicio fijado en Hoy");
     }
     return favorite;
+  }
+  function favoriteSearchButton() {
+    return '<button class="skill-search-launch" type="button" data-action="skill-favorite-search"><span aria-hidden="true">⌕</span><span><strong>Buscar o cambiar ejercicio</strong><small>Español o inglés</small></span><b aria-hidden="true">↗</b></button>';
+  }
+  function pinExercise(existing = null) {
+    openLibrary((config) =>
+      favoriteEditor({
+        ...counterDefaults(config),
+        ...(existing?.id ? { id: existing.id } : {}),
+        value:
+          existing?.metric === config.metric
+            ? existing.value
+            : config.metric === "seconds"
+              ? 10
+              : 5,
+        notes: "",
+      }),
+    );
   }
   function favoriteFooter(id) {
     return `<div class="sheet-actions">${id ? `<button type="button" class="secondary danger" data-action="skill-favorite-delete" data-id="${esc(id)}">Eliminar</button>` : ""}<button class="primary" type="submit">Guardar favorita</button></div>`;
@@ -524,8 +553,8 @@ export function createSkillsUI(ctx) {
       value: "",
     };
     openSheet(
-      f?.id ? "Editar favorita" : "Fijar serie en Hoy",
-      `<form id="skill-favorite-form" data-id="${f?.id ? esc(f.id) : ""}">${formFields({ ...counterDefaults(data), day: today() }, true).replace("Equipo, lastre y fecha", "Equipo y lastre")}${favoriteFooter(f?.id)}</form>`,
+      f?.id ? "Editar ejercicio fijado" : "Fijar ejercicio en Hoy",
+      `<form id="skill-favorite-form" data-id="${f?.id ? esc(f.id) : ""}"><button class="skill-search-launch" type="button" data-action="skill-favorite-search"><span aria-hidden="true">⌕</span><span><strong>Buscar o cambiar ejercicio</strong><small>Español o inglés</small></span><b aria-hidden="true">↗</b></button>${formFields({ ...counterDefaults(data), day: today() }, true).replace("Equipo, lastre y fecha", "Equipo y lastre")}${favoriteFooter(f?.id)}</form>`,
     );
   }
   function saveCurrentFavorite() {
@@ -627,6 +656,14 @@ export function createSkillsUI(ctx) {
     if (a === "skill-exercise-detail") {
       ctx.openExercise(b.dataset.key);
       return;
+    }
+    if (a === "skill-favorite-search") {
+      const form = document.querySelector("#skill-favorite-form"),
+        data = readForm(form);
+      pinExercise({
+        ...data,
+        ...(form.dataset.id ? { id: form.dataset.id } : {}),
+      });
     }
     if (a === "skill-favorite-save") saveCurrentFavorite();
     if (a === "skill-favorite-edit") favoriteEditor(b.dataset.id);
@@ -833,10 +870,12 @@ export function createSkillsUI(ctx) {
         } else if (name === "day") d.day = d.day || today();
         if (form.id === "skill-favorite-form") {
           form.innerHTML =
+            favoriteSearchButton() +
             formFields(d, true).replace(
               "Equipo, lastre y fecha",
               "Equipo y lastre",
-            ) + favoriteFooter(form.dataset.id);
+            ) +
+            favoriteFooter(form.dataset.id);
         } else if (form.id === "skill-edit-form") {
           form.innerHTML = `${formFields(d)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(form.dataset.id)}">Eliminar</button><button class="primary">Guardar cambios</button></div>`;
         } else {
@@ -930,6 +969,7 @@ export function createSkillsUI(ctx) {
     openFocus,
     toggleFocus,
     favoriteEditor,
+    pinExercise,
     prepareLog,
     filterRecords(family = "all") {
       recordFamily = family;

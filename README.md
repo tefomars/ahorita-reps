@@ -29,7 +29,7 @@ Apple documenta el uso de `apple-touch-icon` al agregar un sitio en su [guía de
 - Toca la meta para editarla. Cambia el objetivo de hoy y el objetivo base para futuros días de entrenamiento. 0 es descanso.
 - Dos mancuernas de 15 lb se registran como **+30 lb**: peso añadido total.
 - Legs cuenta por pierna. «Ambas» suma la cantidad a cada lado; también admite solo izquierda o derecha. El contador usa el lado con menos reps para completar la meta.
-- Las favoritas de Hoy pueden mezclar series de Push/Pull/Legs con progresiones de calistenia en reps o segundos. Un toque registra la serie completa. Crear o editar una favorita no registra una serie. Reordénalas en Ajustes y edítalas desde su botón ··· en Hoy. Se muestran las primeras seis con acceso a todas cuando hay más.
+- **Mis ejercicios** en Hoy muestra un contador del ejercicio que elijas y accesos a los demás ejercicios fijados. Las favoritas anteriores aparecen allí automáticamente. Seleccionar un ejercicio no registra actividad; sus botones + sí guardan series. Solo se expande un contador a la vez.
 - Puedes editar o eliminar series desde ··· en el historial. Deshacer revierte la acción indicada durante unos segundos.
 
 ## Entrenar: progresiones, planes y metas
@@ -94,11 +94,21 @@ La práctica de calistenia también cuenta como actividad en el calendario y en 
 
 ## De Hoy a la evolución de cada ejercicio
 
-### Favoritas universales
+### Mis ejercicios: contadores personales en Hoy
 
-Desde Hoy → Crear favorita elige Push/Pull/Legs o Calistenia. En Entrenar, escribe la cantidad y usa «Guardar como favorita en Hoy» para fijar exactamente esa serie (variante, equipo, segundos/reps, lastre, asistencia y grupo de objetivo). Crear una favorita no agrega actividad: tocar su acceso en Hoy sí registra una serie nueva, con opción de deshacer.
+1. En **Hoy → Mis ejercicios → + Fijar** (o «Fijar ejercicio» si aún no hay ninguno), busca en español o inglés: por ejemplo **front lever raises**.
+2. Elige la variante, equipo y grupo al que sumará. Un «Botón habitual» permite elegir tus reps o segundos frecuentes; ya viene con una cantidad inicial. Guarda la favorita.
+3. El ejercicio aparece como un contador en Hoy. Los botones incluyen una cantidad pequeña, tu serie habitual y otra cantidad; ··· junto a ellos permite registrar cualquier cantidad válida. El botón ··· de arriba edita, cambia o quita el ejercicio fijado. También puedes cambiarlo usando «Buscar o cambiar ejercicio» dentro de esa configuración.
 
-Cada favorita tiene un botón ··· para editarla. Ajustes → Series favoritas permite subirlas y bajarlas en el orden. Si hay más de seis, «Ver todas» permite registrar cualquiera. Las favoritas anteriores se conservan.
+**Ejemplo:** registra 8 front lever raises tuck sin lastre y otras 8 a +10 lb. Su contador muestra **16 reps hoy** y ambas series suman a Pull una sola vez. «Próxima serie» cambia las lb para los próximos toques sin modificar los registros anteriores. Las marcas por carga permanecen separadas.
+
+El contador suma las series del día de **la misma variante, equipo y asistencia, con todas sus cargas**, incluidas las que registres desde Entrenar u otro acceso al mismo ejercicio. Straddle y tuck tienen totales distintos. Los intentos no completados quedan fuera. Cada día muestra su propio total; el historial conserva los días anteriores. En Legs, un acceso de ambas piernas muestra reps por lado.
+
+Los holds tienen un contador de segundos y botones en segundos; no incrementan reps de Push/Pull/Legs. La configuración guardada de los ejercicios de reps decide a qué grupo contribuye la siguiente serie. Las favoritas antiguas sin grupo explícito conservan esa configuración; puedes asignarlo en ···.
+
+La fila superior permite cambiar de ejercicio sin registrar nada. Hay hasta seis accesos visibles, en una fila desplazable, y **Todos** abre el resto con búsqueda bilingüe. Solo un contador permanece expandido y el último elegido se recuerda al volver a abrir. Puedes ordenar los accesos desde **Ajustes → Series favoritas**. Quitar un acceso conserva sus series e historial.
+
+También puedes fijar una configuración desde Entrenar usando «Guardar como favorita en Hoy» o desde la ficha de Progreso con «Fijar una serie». Las favoritas siguen sirviendo para crear planes. Sus cantidades habituales, orden y ejercicio seleccionado se incluyen en los respaldos JSON.
 
 ### Una sola vista de marcas
 
@@ -196,7 +206,7 @@ No requiere dependencias, compilación, base de datos ni claves API.
 - `app.mjs`: interfaz, registro, favoritos, temporizador y copias.
 - `core.mjs`: cálculos, validación, calendario, rachas y estadísticas.
 - `skills-core.mjs`: catálogo, validación, flujo común de series y marcas automáticas de calistenia.
-- `journey-core.mjs`: favoritas universales, enfoques y cálculo de fichas/gráficas por ejercicio.
+- `journey-core.mjs`: favoritas universales, totales diarios por ejercicio, enfoques y fichas/gráficas.
 - `journey-ui.mjs`: fichas interactivas de evolución por variante y carga.
 - `skills-ui.mjs`: registro, buscador, historial y marcas de calistenia.
 - `training-core.mjs`: metas, sesiones, resúmenes, combinación de copias y comparaciones entre periodos.

@@ -161,6 +161,7 @@ export function upgrade(s) {
   s.schedules ??= [];
   s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
   s.preferences ??= { timerSound: false };
+  s.preferences.activeShortcut ??= null;
   s.skills ??= defaultSkillStore();
   s.training ??= trainingDefaults();
   return s;
@@ -205,7 +206,15 @@ export function validateExtras(s) {
     throw Error("Respaldo no válido.");
   if (
     s.preferences !== undefined &&
-    (!s.preferences || typeof s.preferences.timerSound !== "boolean")
+    (!s.preferences ||
+      typeof s.preferences.timerSound !== "boolean" ||
+      !(
+        s.preferences.activeShortcut === undefined ||
+        s.preferences.activeShortcut === null ||
+        (typeof s.preferences.activeShortcut === "string" &&
+          /^(base|skill):.+/.test(s.preferences.activeShortcut) &&
+          s.preferences.activeShortcut.length <= 110)
+      ))
   )
     throw Error("Preferencias no válidas.");
 }

@@ -1,3 +1,4 @@
+import { matchesSkillSearch } from "./exercise-library.mjs";
 import { createTrainingUI } from "./training-ui.mjs";
 import {
   mergeBackups,
@@ -9,6 +10,9 @@ import {
   universalFavorites,
   moveShortcut,
   appendShortcut,
+  shortcutConfig,
+  shortcutDailyStats,
+  shortcutIncrements,
 } from "./journey-core.mjs";
 import { createSkillsUI } from "./skills-ui.mjs";
 import {
@@ -217,6 +221,14 @@ function render() {
           : view === "calistenia"
             ? skillsUI.page()
             : settings();
+  const strip = $(".exercise-switcher"),
+    selected = strip?.querySelector('[aria-pressed="true"]');
+  if (selected) {
+    const box = strip.getBoundingClientRect(),
+      item = selected.getBoundingClientRect();
+    strip.scrollLeft +=
+      item.left - box.left - (strip.clientWidth - selected.offsetWidth) / 2;
+  }
 }
 function intro(title, sub, eyebrow = "A TU RITMO") {
   return `<div class="intro"><div><p class="eyebrow">${esc(eyebrow)}</p><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div></div>`;
@@ -227,7 +239,7 @@ function today() {
       (g) =>
         d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g],
     ).length;
-  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${universalFavorites(state).length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!universalFavorites(state).length ? favoriteSection() : ""}${timerSection()}${trainingUI.dashboard()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
+  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${favoriteSection()}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${timerSection()}${trainingUI.dashboard()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
 }
 function card(g, d) {
   const t = dayTotals(state, activeDay, g),
@@ -686,7 +698,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v9");
+    const cache = await caches.open("ahorita-v10");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -721,17 +733,79 @@ function favoriteMeta(f) {
             (f.item.counterGroup ? labels[f.item.counterGroup] : "Sin contador")
           : "");
 }
-function favoriteTile(f) {
-  const edit = f.kind === "base" ? "favorite-edit" : "skill-favorite-edit",
-    action = f.kind === "base" ? "favorite-add" : "universal-skill-add";
-  return `<div class="universal-favorite" data-key="${esc(f.key)}"><button class="favorite-chip ${f.kind === "base" ? f.item.group : "skill"}" data-action="${action}" data-id="${esc(f.item.id)}" aria-label="Registrar favorita: ${esc(favoriteTitle(f))}, ${favoriteAmount(f)}, ${esc(favoriteMeta(f))}"><strong>+${favoriteAmount(f)} · ${esc(favoriteTitle(f))}</strong><small>${esc(favoriteMeta(f))}</small></button><button class="favorite-edit-icon" data-action="${edit}" data-id="${esc(f.item.id)}" aria-label="Editar favorita ${esc(favoriteTitle(f))}">···</button></div>`;
+function shortcutTitle(f) {
+  const c = shortcutConfig(f),
+    family = skillCatalog[c.family]?.name;
+  return f.kind === "base"
+    ? c.movement
+    : family?.toLowerCase() === c.movement.toLowerCase()
+      ? c.movement
+      : family + " · " + c.movement;
+}
+function selectedShortcut() {
+  const items = universalFavorites(state);
+  return (
+    items.find((f) => f.key === state.preferences.activeShortcut) ?? items[0]
+  );
+}
+function shortcutChoice(f, stats = shortcutDailyStats(state, f, activeDay)) {
+  return `<button class="exercise-chip" data-action="shortcut-select" data-key="${esc(f.key)}" aria-pressed="${selectedShortcut()?.key === f.key}"><strong>${esc(shortcutTitle(f))}</strong><span>${esc(stats.config.variation)} · ${weightLabel(f.item.weight)}</span><small>${stats.total} ${stats.config.metric === "seconds" ? "s" : "reps"} hoy</small></button>`;
 }
 function favoriteSection() {
   const items = universalFavorites(state);
   if (!items.length)
-    return '<div class="favorites-empty"><span>★ Tus series, a un toque</span><button class="text-button" data-action="favorite-new">Crear favorita ↗</button></div>';
-  return `<section class="favorites-section" aria-label="Series favoritas"><div class="mini-heading"><h2>★ Favoritas</h2><div>${items.length > 6 ? `<button class="text-button" data-action="favorite-all">Ver todas (${items.length})</button>` : ""}<button class="text-button" data-action="favorite-new">Crear ↗</button></div></div><div class="favorite-scroll">${items.slice(0, 6).map(favoriteTile).join("")}</div></section>`;
+    return '<div class="favorites-empty"><span>Tu ejercicio, con contador propio</span><button class="text-button" data-action="shortcut-new">+ Fijar ejercicio</button></div>';
+  const f = selectedShortcut(),
+    m = shortcutDailyStats(state, f, activeDay),
+    c = m.config,
+    unit = c.metric === "seconds" ? "s" : "reps",
+    edit = f.kind === "base" ? "favorite-edit" : "skill-favorite-edit";
+  const visible = items.slice(0, 6);
+  if (!visible.some((x) => x.key === f.key)) visible[visible.length - 1] = f;
+  return `<section class="exercise-shortcuts" aria-label="Mis ejercicios"><div class="mini-heading"><h2>Mis ejercicios</h2><div>${items.length > 6 ? `<button class="text-button" data-action="favorite-all">Todos (${items.length})</button>` : ""}<button class="text-button" data-action="shortcut-new">+ Fijar</button></div></div>${items.length > 1 ? `<div class="exercise-switcher" aria-label="Elegir contador">${visible.map((x) => shortcutChoice(x)).join("")}</div>` : ""}<article class="exercise-counter" data-key="${esc(f.key)}"><div class="exercise-counter-head"><div><span class="eyebrow">${esc(f.kind === "base" ? labels[c.baseGroup] : skillCatalog[c.family].name)}</span><h3>${esc(c.movement)}</h3><p>${esc([c.variation, c.apparatus, c.support === "Libre" ? "" : c.support + ": " + c.supportNote].filter(Boolean).join(" · "))}</p></div><button class="exercise-counter-edit" data-action="${edit}" data-id="${esc(f.item.id)}" aria-label="Cambiar o quitar ${esc(c.movement)}">···</button></div><div class="exercise-counter-body"><div><strong class="exercise-total" aria-live="polite">${m.total}</strong><span> ${unit}${m.perLeg ? " / lado" : ""}</span><small>Hoy · todas las cargas</small></div><button class="shortcut-load" data-action="shortcut-load" data-key="${esc(f.key)}" aria-label="Cambiar lastre de ${esc(c.movement)}"><small>Próxima serie</small><strong>${esc(weightLabel(f.item.weight))} ⌄</strong></button></div><div class="quick exercise-quick">${shortcutIncrements(
+    f,
+    state.quick,
+  )
+    .map(
+      (value) =>
+        `<button class="${value === (f.kind === "base" ? f.item.reps : f.item.value) ? "habitual" : ""}" data-action="shortcut-add" data-key="${esc(f.key)}" data-value="${value}" aria-label="Sumar ${value} ${unit} de ${esc(c.movement)}">+${value}${c.metric === "seconds" ? " s" : ""}</button>`,
+    )
+    .join(
+      "",
+    )}<button class="custom" data-action="shortcut-custom" data-key="${esc(f.key)}" aria-label="Otra cantidad de ${esc(c.movement)}">···</button></div><p class="exercise-counter-link">${m.group ? `Cada rep suma a ${labels[m.group]}${m.group === "legs" ? " · " + sideLabel(f.kind === "base" ? f.item.side : (f.item.counterSide ?? "both")) : ""}` : c.metric === "seconds" ? "Holds en segundos · sin convertir a reps" : "Sin contador de grupo · asígnalo en ···"}<span>${m.entries.length} ${m.entries.length === 1 ? "serie" : "series"}</span></p></article></section>`;
 }
+function logShortcut(f, value) {
+  if (!f) return;
+  const seconds = f.kind === "skill" && f.item.metric === "seconds";
+  if (
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    value > (seconds ? 36000 : 10000) ||
+    (!seconds && !Number.isInteger(value)) ||
+    (seconds && Math.abs(value * 10 - Math.round(value * 10)) > 1e-7)
+  )
+    throw Error("Revisa la cantidad de esta serie.");
+  if (f.kind === "base") add(f.item.group, value, f.item);
+  else skillsUI.logPreset({ ...f.item, value });
+}
+function shortcutSheet(f, mode) {
+  if (!f) return;
+  const c = shortcutConfig(f),
+    seconds = c.metric === "seconds",
+    load = mode === "load";
+  openSheet(
+    load ? "Cambiar lastre" : "Registrar una serie",
+    `<p class="note">${esc(shortcutTitle(f))} · ${esc(c.variation)}</p><form id="shortcut-form" data-key="${esc(f.key)}" data-mode="${mode}"><label class="field">${load ? "Lastre añadido total · lb" : seconds ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" required type="number" inputmode="${load || seconds ? "decimal" : "numeric"}" min="${load ? 0 : seconds ? 0.1 : 1}" max="${load ? 2000 : seconds ? 36000 : 10000}" step="${load ? 0.5 : seconds ? 0.1 : 1}" value="${load ? f.item.weight : ""}" autofocus></label><p class="note">${load ? "Se usa para las próximas series de este ejercicio. Las series guardadas conservan su peso." : weightLabel(f.item.weight) + ". Se guarda una sola serie y actualiza tus metas, historial y marcas."}</p><button class="primary wide">${load ? "Usar este lastre" : "Guardar serie"}</button></form>`,
+  );
+}
+function allShortcutChoices() {
+  const items = universalFavorites(state);
+  openSheet(
+    "Mis ejercicios fijados",
+    `<label class="field">Buscar entre mis ejercicios<input type="search" id="shortcut-search" placeholder="Nombre en español o inglés" autocomplete="off"></label><div class="all-shortcut-choices">${items.map((x) => `<div data-shortcut-choice="${esc(x.key)}">${shortcutChoice(x)}</div>`).join("")}</div><p class="note" id="shortcut-no-results" hidden>Sin coincidencias entre tus ejercicios fijados.</p><button class="secondary wide" data-action="shortcut-new">+ Fijar otro ejercicio</button>`,
+  );
+}
+
 function favoriteManagement() {
   const items = universalFavorites(state);
   return `<p>Reps y segundos en un toque desde Hoy. Puedes ordenar tus accesos.</p>${items.length ? items.map((f, i) => `<div class="favorite-manage"><div><strong>${esc(favoriteTitle(f))} · ${favoriteAmount(f)}</strong><small>${esc(favoriteMeta(f))}</small></div><div class="favorite-order"><button class="text-button" data-action="favorite-move" data-key="${esc(f.key)}" data-delta="-1" aria-label="Subir ${esc(favoriteTitle(f))}" ${i === 0 ? "disabled" : ""}>↑</button><button class="text-button" data-action="favorite-move" data-key="${esc(f.key)}" data-delta="1" aria-label="Bajar ${esc(favoriteTitle(f))}" ${i === items.length - 1 ? "disabled" : ""}>↓</button><button class="text-button" data-action="${f.kind === "base" ? "favorite-edit" : "skill-favorite-edit"}" data-id="${esc(f.item.id)}" aria-label="Editar favorita ${esc(favoriteTitle(f))}">Editar</button></div></div>`).join("") : '<p class="note">Crea una favorita desde aquí o desde una serie de Calistenia.</p>'}`;
@@ -794,11 +868,26 @@ function handleUniversalFavorites(e) {
   const a = b.dataset.action;
   if (a === "favorite-create-base") favoriteForm();
   if (a === "favorite-create-skill") skillsUI.favoriteEditor();
-  if (a === "favorite-all")
-    openSheet(
-      "Todas tus favoritas",
-      `<div class="all-favorites">${universalFavorites(state).map(favoriteTile).join("")}</div>`,
-    );
+  if (a === "favorite-all") allShortcutChoices();
+  if (a === "shortcut-new") skillsUI.pinExercise();
+  if (a === "shortcut-select") {
+    if (!universalFavorites(state).some((f) => f.key === b.dataset.key)) return;
+    state.preferences.activeShortcut = b.dataset.key;
+    save();
+    if (e.currentTarget.id === "sheet") $("#sheet").close();
+    view = "hoy";
+    render();
+  }
+  if (["shortcut-add", "shortcut-custom", "shortcut-load"].includes(a)) {
+    rollover();
+    const f = universalFavorites(state).find((f) => f.key === b.dataset.key);
+    try {
+      if (a === "shortcut-add") logShortcut(f, Number(b.dataset.value));
+      else shortcutSheet(f, a === "shortcut-load" ? "load" : "custom");
+    } catch (err) {
+      toast(err.message);
+    }
+  }
   if (a === "universal-skill-add") {
     skillsUI.logFavorite(b.dataset.id);
     if (e.currentTarget.id === "sheet") $("#sheet").close();
@@ -1066,10 +1155,11 @@ document.addEventListener("submit", (e) => {
         state.favorites.push(favorite);
         appendShortcut(state, "base:" + favorite.id);
       }
+      state.preferences.activeShortcut = "base:" + favorite.id;
       save();
       $("#sheet").close();
       render();
-      toast("Favorita guardada");
+      toast("Ejercicio fijado en Hoy");
     } catch (err) {
       toast(err.message);
     }
@@ -1123,3 +1213,44 @@ renderTimer();
 
 $("#main").addEventListener("click", handleUniversalFavorites);
 $("#sheet").addEventListener("click", handleUniversalFavorites);
+
+$("#sheet").addEventListener("input", (e) => {
+  if (e.target.id !== "shortcut-search") return;
+  let count = 0;
+  const items = universalFavorites(state);
+  document.querySelectorAll("[data-shortcut-choice]").forEach((row) => {
+    const f = items.find((x) => x.key === row.dataset.shortcutChoice);
+    row.hidden =
+      !f ||
+      !matchesSkillSearch(skillCatalog, e.target.value, shortcutConfig(f));
+    if (!row.hidden) count++;
+  });
+  $("#shortcut-no-results").hidden = count > 0;
+});
+document.addEventListener("submit", (e) => {
+  const form = e.target;
+  if (form.id !== "shortcut-form") return;
+  e.preventDefault();
+  try {
+    rollover();
+    const f = universalFavorites(state).find((x) => x.key === form.dataset.key);
+    if (!f) throw Error("Este ejercicio ya no está fijado.");
+    const value = Number(new FormData(form).get("value"));
+    if (form.dataset.mode === "load") {
+      if (
+        !Number.isFinite(value) ||
+        value < 0 ||
+        value > 2000 ||
+        value * 2 !== Math.round(value * 2)
+      )
+        throw Error("Usa un peso entre 0 y 2000 lb, en pasos de 0.5.");
+      f.item.weight = value;
+      save();
+      render();
+      toast("Lastre actualizado para las próximas series");
+    } else logShortcut(f, value);
+    $("#sheet").close();
+  } catch (err) {
+    toast(err.message);
+  }
+});

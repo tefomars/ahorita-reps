@@ -5,6 +5,7 @@ import {
   allTimeRecords,
   skillRecordKey,
   exerciseProfileId,
+  skillCounterGroup,
 } from "./skills-core.mjs";
 export function validateJourney(s) {
   if (
@@ -176,4 +177,68 @@ export function appendShortcut(s, key) {
   if (!list.includes(key)) return false;
   s.shortcutOrder = [...list.filter((k) => k !== key), key];
   return true;
+}
+
+// Shortcut totals are a view of the original journal, across loads of one context.
+export function shortcutConfig(f) {
+  if (f.kind === "skill") return { ...f.item, source: "skill" };
+  const e = f.item;
+  return {
+    ...e,
+    source: "base",
+    baseGroup: e.group,
+    family: "base",
+    movement: e.exercise,
+    variation:
+      e.variation ||
+      (e.group === "legs"
+        ? e.side === "left"
+          ? "Izquierda"
+          : e.side === "right"
+            ? "Derecha"
+            : "Ambas piernas"
+        : "Estándar"),
+    apparatus: e.apparatus ?? "",
+    support: "Libre",
+    supportNote: "",
+    metric: "reps",
+    value: e.reps,
+  };
+}
+export function shortcutDailyStats(s, f, day) {
+  const config = shortcutConfig(f),
+    key = skillRecordKey(config);
+  const dayState = {
+    days: s.days[day] ? { [day]: s.days[day] } : {},
+    skills: { entries: (s.skills?.entries ?? []).filter((e) => e.day === day) },
+  };
+  const entries = allExerciseEntries(dayState, day).filter(
+    (e) => e.day === day && skillRecordKey(e) === key,
+  );
+  return {
+    key,
+    config,
+    entries,
+    total: Math.round(entries.reduce((n, e) => n + e.value, 0) * 10) / 10,
+    group: f.kind === "base" ? f.item.group : skillCounterGroup(config),
+    perLeg:
+      config.metric === "reps" &&
+      (f.kind === "base"
+        ? f.item.group === "legs" && f.item.side === "both"
+        : config.counterGroup === "legs" &&
+          (config.counterSide ?? "both") === "both"),
+  };
+}
+export function shortcutIncrements(f, quick = [1, 5, 10]) {
+  const seconds = f.kind === "skill" && f.item.metric === "seconds",
+    amount = f.kind === "base" ? f.item.reps : f.item.value;
+  return [
+    ...new Set(
+      seconds
+        ? [5, amount, 30, 10, 20]
+        : [quick[0], amount, quick[2], ...quick, 1, 5, 10],
+    ),
+  ]
+    .slice(0, 3)
+    .sort((a, b) => a - b);
 }
