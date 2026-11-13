@@ -4,14 +4,18 @@ import {
   allExerciseEntries,
   allTimeRecords,
   skillRecordKey,
+  exerciseProfileId,
 } from "./skills-core.mjs";
 export function validateJourney(s) {
   if (
     s.skillFavorites !== undefined &&
     (!Array.isArray(s.skillFavorites) ||
       s.skillFavorites.length > 100 ||
-      !s.skillFavorites.every((f) =>
-        validSkillEntry({ ...f, day: "2000-01-01", at: 0 }),
+      !s.skillFavorites.every(
+        (f) =>
+          f.outcome !== "attempt" &&
+          f.value > 0 &&
+          validSkillEntry({ ...f, day: "2000-01-01", at: 0 }),
       ) ||
       new Set(s.skillFavorites.map((f) => f.id)).size !==
         s.skillFavorites.length)
@@ -128,14 +132,21 @@ export function exerciseDetail(
       byDay.set(e.day, { day: e.day, value, entry: e });
   }
   const points = [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
-  const variantGroup = (r) => {
-    const parts = JSON.parse(r.key);
-    parts.splice(4, 1);
-    return JSON.stringify(parts);
-  };
   const variants = records
-    .filter((r) => variantGroup(r) === variantGroup(record))
-    .map((r) => ({ key: r.key, label: r.exercise.variation }));
+    .filter(
+      (r) =>
+        exerciseProfileId(r.exercise) === exerciseProfileId(record.exercise),
+    )
+    .map((r) => ({
+      key: r.key,
+      label: [
+        r.exercise.variation,
+        r.exercise.apparatus || "Equipo no especificado",
+        r.exercise.support === "Libre"
+          ? "Libre"
+          : r.exercise.support + ": " + r.exercise.supportNote,
+      ].join(" · "),
+    }));
   return {
     record,
     entries,

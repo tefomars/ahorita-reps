@@ -14,6 +14,7 @@ import {
   skillTotals,
   skillRecordKey,
   allTimeRecords,
+  exerciseProfileId,
   suggestedCounterGroup,
   skillCounterGroup,
   counterDefaults,
@@ -36,12 +37,11 @@ export function createSkillsUI(ctx) {
   const num = (n) =>
     new Intl.NumberFormat("es-GT", { maximumFractionDigits: 1 }).format(n);
   const amount = (e) =>
-    `${num(e.value)} ${e.metric === "seconds" ? "s" : "reps"}`;
+    e.outcome === "attempt"
+      ? "Intento"
+      : `${num(e.value)} ${e.metric === "seconds" ? "s" : "reps"}`;
   const load = (w) => (w ? `+${num(w)} lb` : "Sin lastre");
-  const familyName = (e) =>
-    e.source === "base"
-      ? { push: "Push", pull: "Pull", legs: "Legs" }[e.baseGroup]
-      : skillCatalog[e.family].name;
+  const familyName = (e) => skillCatalog[e.family]?.name ?? "Ejercicio propio";
   const context = (e) =>
     [
       e.variation,
@@ -78,6 +78,7 @@ export function createSkillsUI(ctx) {
   }
   function counterLabel(e) {
     const group = skillCounterGroup(e);
+    if (e.outcome === "attempt") return "Práctica · sin reps ni marca";
     if (!group)
       return e.metric === "seconds"
         ? "Hold en segundos · sin sumar reps"
@@ -116,7 +117,7 @@ export function createSkillsUI(ctx) {
             ? "Reps por pierna"
             : "Reps de esta serie";
   }
-  function formFields(d) {
+  function formFields(d, favorite = false) {
     const c = skillCatalog[d.family],
       spec = c.movements.find((x) => x.name === d.movement),
       vars = spec?.variations ?? c.variations,
@@ -134,7 +135,7 @@ export function createSkillsUI(ctx) {
         ? ""
         : d.movement,
       custom,
-    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" required value="${d.value ?? ""}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div>${counterFields(d)}<details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas opcionales</summary><label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
+    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" ${d.outcome === "attempt" ? "disabled" : "required"} value="${d.outcome === "attempt" ? "" : (d.value ?? "")}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><div data-attempt-counter ${d.outcome === "attempt" ? "hidden" : ""}>${counterFields(d)}</div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas${favorite ? "" : " e intentos"}</summary>${favorite ? "" : `<label class="check-label"><input type="checkbox" name="attempt" ${d.outcome === "attempt" ? "checked" : ""}> Intento no completado</label><p class="note">Guarda la práctica sin sumar reps, segundos ni récords.</p>`}<label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
   }
   function readForm(form) {
     const f = new FormData(form),
@@ -175,7 +176,12 @@ export function createSkillsUI(ctx) {
       weight: Number(f.get("weight")),
       notes: String(f.get("notes") ?? "").trim(),
       day: String(f.get("day")),
-      value: f.get("value") === "" ? "" : Number(f.get("value")),
+      outcome: f.get("attempt") ? "attempt" : "complete",
+      value: f.get("attempt")
+        ? 0
+        : f.get("value") === ""
+          ? ""
+          : Number(f.get("value")),
     };
   }
   function dailyStats(list) {
@@ -246,10 +252,10 @@ export function createSkillsUI(ctx) {
   }
   function page() {
     syncDay();
-    return `<div class="intro"><div><p class="eyebrow">FUERZA Y CONTROL</p><h1>Calistenia<span style="color:var(--pull)">.</span></h1><p>Tus progresiones, serie a serie.</p></div></div><div class="panel history-panel"><div class="skill-tabs" role="tablist" aria-label="Calistenia">${[
+    return `<div class="intro"><div><p class="eyebrow">FUERZA Y CONTROL</p><h1>Entrenar<span style="color:var(--pull)">.</span></h1><p>Registro rápido y espacio para tus progresiones.</p></div></div><div class="panel history-panel"><div class="skill-tabs" role="tablist" aria-label="Entrenar">${[
       ["log", "Registrar"],
-      ["history", "Historial"],
-      ["records", "Marcas"],
+      ["plans", "Planes"],
+      ["goals", "Metas"],
     ]
       .map(
         ([key, label]) =>
@@ -257,17 +263,22 @@ export function createSkillsUI(ctx) {
       )
       .join(
         "",
-      )}</div>${tab === "log" ? focusSection("log") + logPage() : historyPage()}</div>`;
+      )}</div>${tab === "log" ? focusSection("log") + logPage() : tab === "history" ? historyPage() : ctx.trainingPage(tab)}</div>`;
   }
-  function saveEntry(data, editingId = null) {
+  function saveEntry(data, editingId = null, meta = {}) {
     ctx.beforeMutation?.();
-    const entry = {
+    let entry = {
       ...data,
       id: editingId ?? crypto.randomUUID(),
       at: editingId
         ? state().skills.entries.find((e) => e.id === editingId)?.at
         : Date.now(),
     };
+    if (editingId) {
+      const old = state().skills.entries.find((e) => e.id === editingId);
+      if (old?.sessionId) entry.sessionId = old.sessionId;
+      if (old?.sessionStepId) entry.sessionStepId = old.sessionStepId;
+    } else entry = ctx.decorateSkill(entry, meta);
     if (!validSkillEntry(entry) || entry.day > today())
       throw Error("Revisa fecha, ejercicio, reps/segundos y lastre.");
     const previous = allTimeRecords(state(), today()).find(
@@ -279,9 +290,16 @@ export function createSkillsUI(ctx) {
       if (index < 0) throw Error("La serie ya no está disponible.");
       state().skills.entries[index] = entry;
     } else state().skills.entries.push(entry);
-    const { day, value, id, at, ...config } = entry;
+    const { day, value, id, at, sessionId, sessionStepId, outcome, ...config } =
+      entry;
     state().skills.selected = { ...config, notes: "" };
-    if (!editingId) draft = { ...config, day, value, notes: "" };
+    if (!editingId)
+      draft = {
+        ...config,
+        day,
+        value: outcome === "attempt" ? "" : value,
+        notes: "",
+      };
     const saved = save();
     render();
     const oldAtWeight = previous?.byWeight.find(
@@ -289,6 +307,7 @@ export function createSkillsUI(ctx) {
       ),
       isBest =
         !editingId &&
+        entry.outcome !== "attempt" &&
         previous &&
         (entry.weight > previous.heaviest.weight ||
           (oldAtWeight && entry.value > oldAtWeight.value));
@@ -314,7 +333,7 @@ export function createSkillsUI(ctx) {
   function editEntry(entry) {
     openSheet(
       "Editar serie de calistenia",
-      `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields({ ...entry, counterGroup: skillCounterGroup(entry), counterSide: entry.counterSide ?? inferCounterSide(entry) })}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
+      `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields({ ...entry, counterGroup: entry.outcome === "attempt" ? (entry.counterGroup ?? suggestedCounterGroup(entry)) : skillCounterGroup(entry), counterSide: entry.counterSide ?? inferCounterSide(entry) })}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
     );
   }
   let libraryQuery = "",
@@ -414,15 +433,34 @@ export function createSkillsUI(ctx) {
   function recordResults() {
     const records = allTimeRecords(state(), today()).filter(
       (r) =>
-        (recordFamily === "all" || r.exercise.family === recordFamily) &&
+        (recordFamily === "all" ||
+          r.exercise.family === recordFamily ||
+          (recordFamily === "base" && r.sources.includes("base"))) &&
         matchesSkillSearch(skillCatalog, recordSearch, r.exercise),
     );
-    records.sort((a, b) => {
-      const ai = state().focusSkills.indexOf(a.exercise.family),
-        bi = state().focusSkills.indexOf(b.exercise.family);
+    const profiles = new Map();
+    for (const r of records) {
+      const id = exerciseProfileId(r.exercise),
+        group = profiles.get(id) ?? [];
+      group.push(r);
+      profiles.set(id, group);
+    }
+    const grouped = [...profiles.values()].sort((a, b) => {
+      const ai = state().focusSkills.indexOf(a[0].exercise.family),
+        bi = state().focusSkills.indexOf(b[0].exercise.family);
       return (ai < 0 ? 100 : ai) - (bi < 0 ? 100 : bi);
     });
-    return `<p class="quiet" role="status">${records.length} ${records.length === 1 ? "ejercicio" : "ejercicios"}</p>${records.length ? `<div class="skill-records">${records.map(recordCard).join("")}</div>` : '<div class="empty"><strong>Sin marcas con ese filtro.</strong>Busca otro nombre o registra tu primera serie.</div>'}`;
+    return `<p class="quiet" role="status">${grouped.length} ${grouped.length === 1 ? "ejercicio" : "ejercicios"}</p>${
+      grouped.length
+        ? `<div class="skill-records">${grouped
+            .map((list) => {
+              const r = list.sort((a, b) => b.last.at - a.last.at)[0],
+                e = r.exercise;
+              return `<article class="skill-record-card"><span class="skill-family-label">${esc(familyName(e))}</span><h2>${esc(e.movement)}</h2><p>${list.length} ${list.length === 1 ? "variante / equipo" : "variantes y equipos"} · ${list.reduce((n, x) => n + x.series, 0)} series</p><p class="note">Revisa tiempos, reps y lastre en la ficha del ejercicio.</p><button class="secondary wide" data-action="skill-exercise-detail" data-key="${esc(r.key)}">Ver evolución y marcas ↗</button></article>`;
+            })
+            .join("")}</div>`
+        : '<div class="empty"><strong>Sin marcas con ese filtro.</strong>Busca otro nombre o registra tu primera serie.</div>'
+    }`;
   }
   function historyResults() {
     const list = skillEntriesOn(state(), historyDay).filter(
@@ -433,7 +471,19 @@ export function createSkillsUI(ctx) {
     return `<p class="quiet">${esc(dateLabel(historyDay))}</p>${dailyStats(list)}${rows(list)}`;
   }
   function saveFavorite(data, editingId = null) {
-    const { id, day, at, source, baseGroup, ...config } = data,
+    if (data.outcome === "attempt")
+      throw Error("Guarda una serie completada como favorita.");
+    const {
+        id,
+        day,
+        at,
+        source,
+        baseGroup,
+        sessionId,
+        sessionStepId,
+        outcome,
+        ...config
+      } = data,
       favorite = { ...config, id: editingId ?? crypto.randomUUID() };
     if (!validSkillEntry({ ...favorite, day: today(), at: 0 }))
       throw Error("Indica una cantidad válida y revisa la configuración.");
@@ -475,7 +525,7 @@ export function createSkillsUI(ctx) {
     };
     openSheet(
       f?.id ? "Editar favorita" : "Fijar serie en Hoy",
-      `<form id="skill-favorite-form" data-id="${f?.id ? esc(f.id) : ""}">${formFields({ ...counterDefaults(data), day: today() }).replace("Equipo, lastre y fecha", "Equipo y lastre")}${favoriteFooter(f?.id)}</form>`,
+      `<form id="skill-favorite-form" data-id="${f?.id ? esc(f.id) : ""}">${formFields({ ...counterDefaults(data), day: today() }, true).replace("Equipo, lastre y fecha", "Equipo y lastre")}${favoriteFooter(f?.id)}</form>`,
     );
   }
   function saveCurrentFavorite() {
@@ -496,7 +546,16 @@ export function createSkillsUI(ctx) {
     return counterDefaults(last ?? defaultSkill(family));
   }
   function prepareLog(config) {
-    const { id, at, source, baseGroup, ...data } = config;
+    const {
+      id,
+      at,
+      source,
+      baseGroup,
+      sessionId,
+      sessionStepId,
+      outcome,
+      ...data
+    } = config;
     draft = { ...counterDefaults(data), day: today(), value: "", notes: "" };
     tab = "log";
     ctx.showSkills();
@@ -643,7 +702,8 @@ export function createSkillsUI(ctx) {
         return;
       }
       tab = b.dataset.tab;
-      if (!["log", "history", "records"].includes(tab)) tab = "log";
+      if (!["log", "history", "records", "plans", "goals"].includes(tab))
+        tab = "log";
       render();
       window.scrollTo(0, 0);
     }
@@ -713,6 +773,11 @@ export function createSkillsUI(ctx) {
     );
     if (form) {
       const name = e.target.name;
+      if (name === "attempt") {
+        form.elements.value.disabled = e.target.checked;
+        form.elements.value.required = !e.target.checked;
+        form.querySelector("[data-attempt-counter]").hidden = e.target.checked;
+      }
       if (["movement", "variation", "apparatus"].includes(name)) {
         const custom = e.target.value === "__custom",
           wrap = form.querySelector(`[data-skill-custom="${name}"]`);
@@ -768,8 +833,10 @@ export function createSkillsUI(ctx) {
         } else if (name === "day") d.day = d.day || today();
         if (form.id === "skill-favorite-form") {
           form.innerHTML =
-            formFields(d).replace("Equipo, lastre y fecha", "Equipo y lastre") +
-            favoriteFooter(form.dataset.id);
+            formFields(d, true).replace(
+              "Equipo, lastre y fecha",
+              "Equipo y lastre",
+            ) + favoriteFooter(form.dataset.id);
         } else if (form.id === "skill-edit-form") {
           form.innerHTML = `${formFields(d)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(form.dataset.id)}">Eliminar</button><button class="primary">Guardar cambios</button></div>`;
         } else {
@@ -851,6 +918,13 @@ export function createSkillsUI(ctx) {
   document.addEventListener("submit", handleSubmit);
   return {
     page,
+    showTab(value) {
+      tab = value;
+      ctx.showSkills();
+    },
+    logPreset(preset, meta = {}) {
+      return saveEntry({ ...preset, day: today() }, null, meta);
+    },
     recordsPage,
     focusSection,
     openFocus,

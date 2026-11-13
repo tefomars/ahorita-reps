@@ -1,3 +1,4 @@
+import { trainingDefaults, validateTraining } from "./training-core.mjs";
 import { validateJourney } from "./journey-core.mjs";
 import {
   defaultSkillStore,
@@ -71,6 +72,14 @@ export function validateEntry(e) {
   return (
     e &&
     typeof e.id === "string" &&
+    (e.apparatus === undefined ||
+      (typeof e.apparatus === "string" && e.apparatus.length <= 80)) &&
+    (e.variation === undefined ||
+      (typeof e.variation === "string" && e.variation.length <= 80)) &&
+    (e.sessionId === undefined ||
+      (typeof e.sessionId === "string" && e.sessionId.length <= 100)) &&
+    (e.sessionStepId === undefined ||
+      (typeof e.sessionStepId === "string" && e.sessionStepId.length <= 100)) &&
     groups.includes(e.group) &&
     typeof e.exercise === "string" &&
     e.exercise.length > 0 &&
@@ -112,6 +121,10 @@ export function validateBackup(s) {
       typeof p.exercise !== "string" ||
       !p.exercise.trim() ||
       p.exercise.length > 80 ||
+      !["apparatus", "variation"].every(
+        (k) =>
+          p[k] === undefined || (typeof p[k] === "string" && p[k].length <= 80),
+      ) ||
       !Number.isFinite(p.weight) ||
       p.weight < 0 ||
       p.weight > 2000 ||
@@ -149,10 +162,12 @@ export function upgrade(s) {
   s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
   s.preferences ??= { timerSound: false };
   s.skills ??= defaultSkillStore();
+  s.training ??= trainingDefaults();
   return s;
 }
 export function validateExtras(s) {
   validateJourney(s);
+  validateTraining(s);
   if (s.skills !== undefined) validateSkillStore(s.skills);
   if (
     s.favorites !== undefined &&

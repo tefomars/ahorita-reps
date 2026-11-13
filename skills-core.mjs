@@ -1,3 +1,4 @@
+import { identifyExercise, profileId } from "./exercise-identity.mjs";
 import { extraSkills, infoFor } from "./exercise-library.mjs";
 // Repetition sets can contribute to a daily goal without duplicating their source record.
 export const skillCatalog = {
@@ -116,7 +117,8 @@ export function inferCounterSide(e) {
       : "both";
 }
 export function skillCounterGroup(e) {
-  return e.metric === "reps" &&
+  return e.outcome !== "attempt" &&
+    e.metric === "reps" &&
     ["push", "pull", "legs"].includes(e.counterGroup)
     ? e.counterGroup
     : null;
@@ -179,6 +181,9 @@ export function validSkillConfig(e) {
   return !!(
     e &&
     Object.hasOwn(skillCatalog, e.family) &&
+    (e.outcome === undefined || ["complete", "attempt"].includes(e.outcome)) &&
+    (e.sessionId === undefined || short(e.sessionId, 100)) &&
+    (e.sessionStepId === undefined || short(e.sessionStepId, 100)) &&
     (e.counterGroup === undefined ||
       e.counterGroup === null ||
       ["push", "pull", "legs"].includes(e.counterGroup)) &&
@@ -210,7 +215,7 @@ export function validSkillEntry(e) {
     Number.isFinite(e.at) &&
     e.at >= 0 &&
     Number.isFinite(e.value) &&
-    e.value > 0 &&
+    (e.outcome === "attempt" ? e.value === 0 : e.value > 0) &&
     (e.metric === "reps"
       ? Number.isInteger(e.value) && e.value <= 10000
       : e.value <= 36000 &&
@@ -235,24 +240,25 @@ export function skillTotals(list) {
   return {
     series: list.length,
     reps: list
-      .filter((e) => e.metric === "reps")
+      .filter((e) => e.outcome !== "attempt" && e.metric === "reps")
       .reduce((n, e) => n + e.value, 0),
     seconds:
       Math.round(
         list
-          .filter((e) => e.metric === "seconds")
+          .filter((e) => e.outcome !== "attempt" && e.metric === "seconds")
           .reduce((n, e) => n + e.value, 0) * 10,
       ) / 10,
   };
 }
 const norm = (s) => s.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 export function skillRecordKey(e) {
+  const x = identifyExercise(skillCatalog, e);
   return JSON.stringify([
-    e.source ?? "skill",
-    e.baseGroup ?? "",
-    e.family,
-    norm(e.movement),
-    norm(e.variation),
+    "exercise",
+    "",
+    x.family,
+    norm(x.movement),
+    norm(x.variation),
     e.metric,
     norm(e.apparatus),
     e.support,
@@ -260,10 +266,14 @@ export function skillRecordKey(e) {
   ]);
 }
 // A shared stream keeps progression screens and marks on the same source records.
-export function allExerciseEntries(s, today) {
+export function allJournalEntries(s, today) {
   const list = (s.skills?.entries ?? [])
     .filter((e) => e.day <= today)
-    .map((e) => ({ ...e, source: "skill" }));
+    .map((e) => ({
+      ...e,
+      source: "skill",
+      ...identifyExercise(skillCatalog, e),
+    }));
   for (const [day, d] of Object.entries(s.days)) {
     if (day > today) continue;
     for (const e of d.entries)
@@ -276,26 +286,37 @@ export function allExerciseEntries(s, today) {
         family: "base",
         movement: e.exercise,
         variation:
-          e.group === "legs"
+          e.variation ||
+          (e.group === "legs"
             ? e.side === "both"
               ? "Ambas piernas"
               : e.side === "left"
                 ? "Solo izquierda"
                 : "Solo derecha"
-            : "Estándar",
+            : "Estándar"),
         metric: "reps",
         value: e.reps,
-        apparatus: "",
+        apparatus: e.apparatus ?? "",
+        sessionId: e.sessionId,
+        sessionStepId: e.sessionStepId,
         support: "Libre",
         supportNote: "",
         weight: e.weight,
         notes: "",
       });
   }
-  return list.sort(
-    (a, b) =>
-      a.day.localeCompare(b.day) || a.at - b.at || a.id.localeCompare(b.id),
-  );
+  return list
+    .map((e) => ({ ...e, ...identifyExercise(skillCatalog, e) }))
+    .sort(
+      (a, b) =>
+        a.day.localeCompare(b.day) || a.at - b.at || a.id.localeCompare(b.id),
+    );
+}
+export function allExerciseEntries(s, today) {
+  return allJournalEntries(s, today).filter((e) => e.outcome !== "attempt");
+}
+export function exerciseProfileId(e) {
+  return profileId(skillCatalog, e);
 }
 // Personal bests are derived from sets, never entered separately.
 export function allTimeRecords(s, today) {
@@ -318,6 +339,9 @@ export function allTimeRecords(s, today) {
       records.set(key, r);
     }
     r.series++;
+    r.last = e;
+    r.sources ??= [];
+    if (!r.sources.includes(e.source)) r.sources.push(e.source);
     if (
       e.value > r.best.value ||
       (e.value === r.best.value && e.weight > r.best.weight)

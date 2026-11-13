@@ -1,3 +1,9 @@
+import { createTrainingUI } from "./training-ui.mjs";
+import {
+  mergeBackups,
+  dataFingerprint,
+  progressInsights,
+} from "./training-core.mjs";
 import { createJourneyUI } from "./journey-ui.mjs";
 import {
   universalFavorites,
@@ -9,6 +15,8 @@ import {
   skillEntriesOn,
   skillContributions,
   skillCatalog,
+  allTimeRecords,
+  skillRecordKey,
 } from "./skills-core.mjs";
 import {
   groups,
@@ -26,7 +34,6 @@ import {
   setSchedule,
   startOfWeek,
   weeklySummary,
-  personalRecords,
   backupDue,
   hasActivity,
   dayTotals,
@@ -78,6 +85,8 @@ const skillsUI = createSkillsUI({
   beforeMutation: rollover,
   openProgress,
   openExercise,
+  trainingPage: (tab) => trainingUI.page(tab),
+  decorateSkill: (e, meta) => trainingUI.decorate(e, "skill", meta),
   ensureCounterDay: (key) => ensureDay(state, key),
   showSkills: () => {
     view = "calistenia";
@@ -113,6 +122,17 @@ const journeyUI = createJourneyUI({
       skillsUI.favoriteEditor(data);
     }
   },
+  createGoal: (e) =>
+    trainingUI.goalEditor({
+      family: e.family,
+      movement: e.movement,
+      variation: e.variation,
+      apparatus: e.apparatus || null,
+      weight: e.weight,
+      metric: e.metric,
+      period: "day",
+      name: e.movement,
+    }),
   toggleFocus: (family) => skillsUI.toggleFocus(family),
   openDay: (e) => {
     if (e.source === "base") {
@@ -123,6 +143,21 @@ const journeyUI = createJourneyUI({
       window.scrollTo(0, 0);
     } else skillsUI.showHistory(e.day, e.family);
   },
+});
+const trainingUI = createTrainingUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  esc,
+  save,
+  render,
+  openSheet,
+  toast,
+  showTab: (tab) => skillsUI.showTab(tab),
+  logPreset: (step, meta) =>
+    step.kind === "base"
+      ? add(step.preset.group, step.preset.reps, step.preset, meta)
+      : skillsUI.logPreset(step.preset, meta),
+  startRest,
 });
 const weightLabel = (w) => (w ? `+${w} lb` : "Sin peso añadido");
 const sideLabel = (s) =>
@@ -192,7 +227,7 @@ function today() {
       (g) =>
         d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g],
     ).length;
-  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${universalFavorites(state).length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!universalFavorites(state).length ? favoriteSection() : ""}${timerSection()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
+  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${universalFavorites(state).length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!universalFavorites(state).length ? favoriteSection() : ""}${timerSection()}${trainingUI.dashboard()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
 }
 function card(g, d) {
   const t = dayTotals(state, activeDay, g),
@@ -272,17 +307,22 @@ function openSheet(title, body) {
 function configForm(g, edit) {
   const p = edit ?? state.selected[g],
     opts = [...new Set([...exercises[g], p.exercise])];
-  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label><p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}`;
+  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label><p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}<details class="skill-equipment"><summary>Equipo y variante para Progreso</summary><label class="field">Equipo<input name="apparatus" maxlength="80" value="${esc(p.apparatus ?? "")}" placeholder="Ej. Barra, Anillas, Suelo"></label><label class="field">Variante<input name="variation" maxlength="80" value="${esc(p.variation ?? "")}" placeholder="Vacío = estándar o lado elegido"></label><p class="note">Usa el mismo nombre de equipo y variante en Entrenar para unir sus marcas.</p></details>`;
 }
-function add(g, reps, preset = null) {
+function add(g, reps, preset = null, meta = {}) {
   rollover();
-  const previousRecords = personalRecords(state, activeDay);
+  const previousRecords = allTimeRecords(state, activeDay);
   const d = current(),
     p = preset ?? state.selected[g],
     before = dayTotals(state, activeDay, g).count,
     id = crypto.randomUUID(),
     key = activeDay;
-  const entry = { id, group: g, ...p, reps, at: Date.now() };
+  const { id: presetId, day: presetDay, ...config } = p;
+  const entry = trainingUI.decorate(
+    { ...config, id, group: g, reps, at: Date.now() },
+    "base",
+    meta,
+  );
   if (!validateEntry(entry)) return toast("Revisa el número de repeticiones.");
   d.entries.push(entry);
   const saved = save();
@@ -293,15 +333,29 @@ function add(g, reps, preset = null) {
     d.goals[g] > 0 &&
     before < d.goals[g] &&
     dayTotals(state, activeDay, g).count >= d.goals[g];
-  const oldRecord = previousRecords.find(
-    (r) =>
-      r.group === g &&
-      r.exercise.trim().toLocaleLowerCase() ===
-        p.exercise.trim().toLocaleLowerCase() &&
-      r.weight === p.weight &&
-      (g !== "legs" || r.side === p.side),
-  );
-  const newRecord = oldRecord && reps > oldRecord.reps;
+  const recordKey = skillRecordKey({
+    source: "base",
+    family: "base",
+    movement: p.exercise,
+    variation:
+      p.variation ||
+      (g === "legs"
+        ? p.side === "left"
+          ? "Izquierda"
+          : p.side === "right"
+            ? "Derecha"
+            : "Ambas piernas"
+        : "Estándar"),
+    metric: "reps",
+    apparatus: p.apparatus ?? "",
+    support: "Libre",
+    supportNote: "",
+  });
+  const oldRecord = previousRecords
+    .find((r) => r.key === recordKey)
+    ?.byWeight.find((e) => e.weight === p.weight);
+  const newRecord = oldRecord && reps > oldRecord.value;
+
   toast(
     saved
       ? newRecord
@@ -329,6 +383,8 @@ function formValues(form, g) {
     exercise,
     weight: Number(f.get("weight")),
     side: g === "legs" ? String(f.get("side")) : "both",
+    apparatus: String(f.get("apparatus") ?? "").trim(),
+    variation: String(f.get("variation") ?? "").trim(),
   };
 }
 $("#main").addEventListener("click", (e) => {
@@ -375,6 +431,17 @@ $("#main").addEventListener("click", (e) => {
     }
   }
   if (a === "export") exportData();
+  if (a === "icon-help") iconHelp();
+  if (a === "recover-local") {
+    try {
+      const backup = upgrade(
+        validateBackup(JSON.parse(localStorage.getItem("reps.recovery.v1"))),
+      );
+      importReview(backup);
+    } catch {
+      toast("No hay una copia local de recuperación válida.");
+    }
+  }
   if (a === "import") $("#import-file").click();
   if (a === "offline") offlineStatus();
 });
@@ -471,35 +538,87 @@ $("#main").addEventListener("change", async (e) => {
       if (file.size > 10 * 1024 * 1024)
         throw Error("La copia es demasiado grande.");
       const incoming = upgrade(validateBackup(JSON.parse(await file.text())));
-      openSheet(
-        "Restaurar copia",
-        `<p>Esta copia contiene ${Object.values(incoming.days).reduce((n, d) => n + d.entries.length, incoming.skills.entries.length)} series. Reemplazará los datos de este dispositivo.</p><p class="note">Exporta una copia de tus datos actuales antes de reemplazarlos.</p><button class="secondary wide" id="pre-export">Exportar datos actuales</button><button class="primary wide" id="confirm-import">Reemplazar con esta copia</button>`,
-      );
-      $("#pre-export").onclick = exportData;
-      $("#confirm-import").onclick = () => {
-        const previous = state;
-        state = incoming;
-        skillsUI.reset();
-        journeyUI.reset();
-        detailOpen = false;
-        if (save()) {
-          $("#sheet").close();
-          render();
-          toast("Copia restaurada");
-        } else {
-          state = previous;
-          skillsUI.reset();
-          journeyUI.reset();
-          detailOpen = false;
-          toast("No se pudo restaurar. Los datos anteriores se conservaron.");
-        }
-      };
+      importReview(incoming);
     } catch {
       toast("No se pudo importar: elige una copia válida de Reps.");
     }
     e.target.value = "";
   }
 });
+function readRecovery() {
+  try {
+    return localStorage.getItem("reps.recovery.v1");
+  } catch {
+    return null;
+  }
+}
+function replaceState(next, label) {
+  const previous = state;
+  state = upgrade(validateBackup(next));
+  if (save()) {
+    try {
+      localStorage.setItem("reps.recovery.v1", JSON.stringify(previous));
+    } catch {}
+    skillsUI.reset();
+    journeyUI.reset();
+    detailOpen = false;
+    $("#sheet").close();
+    render();
+    toast(label);
+  } else {
+    state = previous;
+    toast("No se pudo guardar; se conservaron los datos anteriores.");
+  }
+}
+function importReview(incoming, prefer = "local") {
+  const result = mergeBackups(state, incoming, prefer),
+    r = result.report;
+  let valid = true;
+  try {
+    validateBackup(result.state);
+  } catch {
+    valid = false;
+  }
+  openSheet(
+    "Combinar copia",
+    `<p>Vista previa: <strong>${r.added} nuevos</strong> · ${r.duplicates} iguales · ${r.conflicts} conflictos.</p><p class="note">Los registros con el mismo ID se conservan una sola vez. Los ajustes generales y el calendario de este dispositivo se mantienen. Dos series con IDs diferentes se conservan aunque se parezcan.</p>${r.conflicts ? `<label class="field">Si el mismo registro fue editado en ambos lugares<select id="merge-preference"><option value="local" ${prefer === "local" ? "selected" : ""}>Conservar la versión de este dispositivo</option><option value="incoming" ${prefer === "incoming" ? "selected" : ""}>Usar la versión de la copia</option></select></label><details><summary>Ver conflictos</summary>${r.examples.map((x) => `<p class="note">${esc(x.label)} · ${esc(x.id)}</p>`).join("")}</details>` : ""}${!valid ? '<p class="note danger" role="alert">La combinación supera los límites de favoritas, metas o planes, o tiene datos incompatibles. Reduce esos elementos antes de combinar.</p>' : ""}<button class="secondary wide" id="pre-export">Exportar datos actuales</button><button class="primary wide" id="confirm-merge" ${!valid ? "disabled" : ""}>Combinar con mis datos</button><details class="import-advanced"><summary>Opciones avanzadas</summary><p class="note">Reemplazar borra del registro activo lo que solo existe en este dispositivo. Antes exporta una copia. Se intentará conservar una copia local de recuperación.</p><button class="secondary danger wide" id="confirm-import">Reemplazar con esta copia</button></details>`,
+  );
+  $("#pre-export").onclick = exportData;
+  const select = $("#merge-preference");
+  if (select) select.onchange = () => importReview(incoming, select.value);
+  $("#confirm-merge").onclick = () =>
+    replaceState(result.state, "Copias combinadas");
+  $("#confirm-import").onclick = () => {
+    openSheet(
+      "Confirmar reemplazo",
+      `<p>Se usará únicamente la copia seleccionada. Tus datos actuales dejarán de aparecer.</p><button class="secondary wide" id="replace-export">Exportar datos actuales</button><button class="primary danger wide" id="replace-final">Sí, reemplazar datos</button>`,
+    );
+    $("#replace-export").onclick = exportData;
+    $("#replace-final").onclick = () =>
+      replaceState(incoming, "Copia restaurada");
+  };
+}
+function iconHelp() {
+  openSheet(
+    "Icono R · conservar tus datos",
+    `<div class="icon-help-preview"><img src="./reps-icon-180-v9.png" width="80" height="80" alt="Nuevo icono R"><div><h3>Este es el nuevo icono.</h3><p>iOS puede conservar el que usó al instalar. La app no puede obligarlo a cambiar.</p></div></div><ol class="safe-icon-steps"><li>Exporta una copia desde el icono donde están tus registros y guárdala en Archivos.</li><li>Selecciona ese archivo abajo para comprobar que coincide con los datos de esta instalación.</li><li>Para probar el nuevo icono, abre esta misma dirección en Safari y usa Compartir → Agregar a pantalla de inicio. Si iOS lo permite, conserva el icono anterior.</li><li>Abre el nuevo acceso. Si no muestra tus registros, importa la copia y revisa tus contadores, historial y marcas antes de eliminar el acceso anterior.</li></ol><p class="note danger">Si iOS exige borrar el acceso anterior, conserva primero la copia verificada en Archivos. Eliminar una app web puede borrar su almacenamiento. Esta comprobación verifica el archivo; no crea sincronización.</p><button class="secondary wide" id="icon-export">1 · Exportar copia actual</button><label class="field">2 · Comprobar la copia guardada<input type="file" id="icon-verify" accept=".json,application/json"></label><p id="icon-verify-result" role="status"></p><p class="note">Para actualizar funciones basta con cerrar y volver a abrir con internet, manteniendo el icono actual.</p>`,
+  );
+  $("#icon-export").onclick = exportData;
+  $("#icon-verify").onchange = async (e) => {
+    try {
+      const file = e.target.files[0];
+      if (!file || file.size > 10 * 1024 * 1024) throw Error();
+      const backup = upgrade(validateBackup(JSON.parse(await file.text())));
+      $("#icon-verify-result").textContent =
+        dataFingerprint(backup) === dataFingerprint(state)
+          ? "✓ Copia válida y completa: coincide con tus datos actuales. Consérvala en Archivos."
+          : "La copia es válida, pero no coincide con todos los datos actuales. Exporta una copia nueva desde esta instalación.";
+    } catch {
+      $("#icon-verify-result").textContent =
+        "No se pudo verificar. Selecciona una copia JSON de Reps.";
+    }
+  };
+}
 function exportData() {
   state.backup.lastExportAt = Date.now();
   state.backup.snoozedUntil = null;
@@ -517,7 +636,7 @@ function exportData() {
   if (view === "ajustes") offlineStatus();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
-document.querySelector("nav").addEventListener("click", (e) => {
+document.querySelector(".shell").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");
   if (b) {
     view = b.dataset.view;
@@ -567,7 +686,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v8");
+    const cache = await caches.open("ahorita-v9");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -626,15 +745,16 @@ function openFavoriteChooser() {
 function baseFromRecord(e) {
   return {
     group: e.baseGroup,
+    apparatus: e.apparatus,
+    variation: e.variation,
     exercise: e.movement,
     reps: e.value,
     weight: e.weight,
-    side:
-      e.variation === "Solo izquierda"
-        ? "left"
-        : e.variation === "Solo derecha"
-          ? "right"
-          : "both",
+    side: ["Solo izquierda", "Izquierda"].includes(e.variation)
+      ? "left"
+      : ["Solo derecha", "Derecha"].includes(e.variation)
+        ? "right"
+        : "both",
   };
 }
 function openBaseLog(e) {
@@ -660,9 +780,13 @@ function openExercise(key) {
   render();
   window.scrollTo(0, 0);
 }
+function insightsSection() {
+  const m = progressInsights(state, activeDay);
+  return `<section class="progress-insights"><h2>Últimos 30 días</h2><p>${m.activeDays} días de práctica registrados.</p>${m.improvements.map((x) => `<button class="insight-row" data-action="skill-exercise-detail" data-key="${esc(x.key)}"><span><strong>${esc(x.movement)} · ${esc(x.variation)}</strong><small>${esc(x.apparatus || "Equipo no especificado")} · ${weightLabel(x.weight)}</small></span><b>${x.from} → ${x.to} ${x.metric === "seconds" ? "s" : "reps"} ↗</b></button>`).join("")}<p class="note">${m.improvements.length ? "Mejores series de los últimos 30 días frente a los 30 anteriores, con la misma variante, equipo, asistencia y carga." : "Las mejoras aparecerán cuando haya registros comparables en los dos periodos de 30 días."}</p></section>`;
+}
 function progress() {
   if (detailOpen) return journeyUI.page();
-  return `${intro("Tu progreso.", "Tu constancia, con todo el detalle.", "PROGRESO")}<div class="panel history-panel"><div class="progress-tabs" role="tablist" aria-label="Progreso"><button role="tab" data-action="progress-tab" data-tab="summary" aria-selected="${progressTab === "summary"}">Resumen semanal</button><button role="tab" data-action="progress-tab" data-tab="exercises" aria-selected="${progressTab === "exercises"}">Ejercicios y marcas</button></div>${skillsUI.focusSection("progress")}${progressTab === "summary" ? weeklyProgress() : skillsUI.recordsPage()}</div>`;
+  return `${intro("Tu progreso.", "Tu constancia, con todo el detalle.", "PROGRESO")}<div class="panel history-panel"><div class="progress-tabs" role="tablist" aria-label="Progreso"><button role="tab" data-action="progress-tab" data-tab="summary" aria-selected="${progressTab === "summary"}">Resumen semanal</button><button role="tab" data-action="progress-tab" data-tab="exercises" aria-selected="${progressTab === "exercises"}">Ejercicios y marcas</button></div>${skillsUI.focusSection("progress")}${progressTab === "summary" ? insightsSection() + weeklyProgress() : skillsUI.recordsPage()}</div>`;
 }
 function handleUniversalFavorites(e) {
   const b = e.target.closest("[data-action]");
@@ -688,11 +812,7 @@ function handleUniversalFavorites(e) {
   if (e.currentTarget.id === "sheet" && a === "favorite-add") {
     const f = state.favorites.find((f) => f.id === b.dataset.id);
     if (f) {
-      add(f.group, f.reps, {
-        exercise: f.exercise,
-        weight: f.weight,
-        side: f.side,
-      });
+      add(f.group, f.reps, f);
       $("#sheet").close();
     }
   }
@@ -747,7 +867,7 @@ function settings() {
       "Sábado",
       "Domingo",
     ];
-  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div>${favoriteManagement()}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar copia</button></div><input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Las series de calistenia en repeticiones pueden sumar a Push, Pull o Legs con «Sumar al objetivo diario». Los holds en segundos se registran aparte. Las series anteriores a esta función conservan su contador; puedes editar una y asignarle un grupo.</p><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
+  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div>${favoriteManagement()}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar / combinar</button></div>${readRecovery() ? '<button class="text-button wide" data-action="recover-local">Revisar copia local anterior a la última importación ↗</button>' : ""}<input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><button class="secondary wide" data-action="icon-help">Veo la A: actualizar icono con respaldo ↗</button><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Los intentos no completados cuentan como práctica, sin aumentar reps, segundos ni récords. Las metas de días de práctica sí los incluyen.</p><p>Las series de calistenia en repeticiones pueden sumar a Push, Pull o Legs con «Sumar al objetivo diario». Los holds en segundos se registran aparte. Las series anteriores a esta función conservan su contador; puedes editar una y asignarle un grupo.</p><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
 }
 function favoriteForm(f = null) {
   const g = f?.group ?? "push";
@@ -870,12 +990,7 @@ $("#main").addEventListener("click", (e) => {
   }
   if (a === "favorite-add") {
     const f = state.favorites.find((f) => f.id === b.dataset.id);
-    if (f)
-      add(f.group, f.reps, {
-        exercise: f.exercise,
-        weight: f.weight,
-        side: f.side,
-      });
+    if (f) add(f.group, f.reps, f);
   }
   if (a === "backup-snooze") {
     state.backup.snoozedUntil = Date.now() + 7 * 86400000;

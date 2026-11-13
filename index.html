@@ -15,7 +15,11 @@
       content="Tus repeticiones de hoy. Push, Pull y Legs, a tu ritmo."
     />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="./reps-icon-180-v9.png"
+    />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
     <title>Reps</title>
@@ -24,17 +28,23 @@
     <div class="shell">
       <header>
         <a href="#hoy" class="brand" aria-label="Reps, inicio"
-          ><span class="mark">r<span>↗</span></span
+          ><span class="mark">R<span>↗</span></span
           >Reps</a
-        ><span class="local"><i></i> Solo en tu dispositivo</span>
+        ><span class="local"><i></i> Solo en tu dispositivo</span
+        ><button
+          class="settings-access"
+          data-view="ajustes"
+          aria-label="Ajustes"
+        >
+          ⚙
+        </button>
       </header>
       <main id="main"></main>
       <nav aria-label="Navegación">
         <button data-view="hoy" class="active"><span>◉</span> Hoy</button
-        ><button data-view="calistenia"><span>◇</span> Calistenia</button
+        ><button data-view="calistenia"><span>◇</span> Entrenar</button
         ><button data-view="progreso"><span>▥</span> Progreso</button
-        ><button data-view="historial"><span>◷</span> Historial</button
-        ><button data-view="ajustes"><span>☷</span> Ajustes</button>
+        ><button data-view="historial"><span>◷</span> Historial</button>
       </nav>
       <footer>Una serie más. A tu ritmo.</footer>
     </div>
