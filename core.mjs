@@ -1,26 +1,322 @@
-export const groups = ['push','pull','legs'];
-export const exercises = {push:['Pushups','Dips','Diamond pushups','Incline pushups','Decline pushups','Pike pushups'],pull:['Pullups','Chinups','Neutral grip pullups','Rows','Australian pullups'],legs:['Bulgarian squats','Squats','Lunges','Reverse lunges','Step-ups','Calf raises']};
-export function dayKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-export function initial(){return {version:1,goals:{push:100,pull:30,legs:40},quick:[1,5,10],selected:Object.fromEntries(groups.map(g=>[g,{exercise:exercises[g][0],weight:0,side:'both'}])),days:{}};}
-export function ensureDay(s,key){return s.days[key]??(s.days[key]={goals:{...s.goals},entries:[]});}
-export function totals(entries,g){const list=entries.filter(e=>e.group===g);if(g!=='legs')return {count:list.reduce((n,e)=>n+e.reps,0)};const left=list.reduce((n,e)=>n+(e.side!=='right'?e.reps:0),0),right=list.reduce((n,e)=>n+(e.side!=='left'?e.reps:0),0);return {count:Math.min(left,right),left,right};}
-export function validateEntry(e){return e&&typeof e.id==='string'&&groups.includes(e.group)&&typeof e.exercise==='string'&&e.exercise.length>0&&e.exercise.length<=80&&Number.isInteger(e.reps)&&e.reps>0&&e.reps<=10000&&Number.isFinite(e.weight)&&e.weight>=0&&e.weight<=2000&&['both','left','right'].includes(e.side)&&Number.isFinite(e.at);}
-export function validateBackup(s){if(!s||s.version!==1||!s.days||typeof s.days!=='object'||Array.isArray(s.days)||!s.selected)throw Error('Copia no válida.');const goals=g=>g&&groups.every(k=>Number.isInteger(g[k])&&g[k]>=0&&g[k]<=10000);if(!goals(s.goals)||!Array.isArray(s.quick)||s.quick.length!==3||!s.quick.every(n=>Number.isInteger(n)&&n>0&&n<=999))throw Error('Configuración no válida.');for(const g of groups){const p=s.selected[g];if(!p||typeof p.exercise!=='string'||!p.exercise.trim()||p.exercise.length>80||!Number.isFinite(p.weight)||p.weight<0||p.weight>2000||!['both','left','right'].includes(p.side))throw Error('Ejercicio no válido.');}for(const [key,d]of Object.entries(s.days)){if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||dayKey(new Date(key+'T12:00:00'))!==key||!goals(d.goals)||!Array.isArray(d.entries)||!d.entries.every(validateEntry)||new Set(d.entries.map(e=>e.id)).size!==d.entries.length)throw Error('Historial no válido.');}return s;}
-
-export function shiftDay(key,amount){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+amount);return dayKey(d);}
-// Today remains open until midnight. Explicit zero-goal days preserve group streaks.
-export function streakStats(state,today,group=null){
-  let run=0,best=0,total=0,previous=null;
-  const keys=Object.keys(state.days).filter(k=>k<=today).sort();
-  for(const key of keys){
-    if(previous&&shiftDay(previous,1)!==key)run=0;
-    const d=state.days[key];
-    const qualifies=group?d.goals[group]>0&&totals(d.entries,group).count>=d.goals[group]:d.entries.length>0;
-    const rest=group&&d.goals[group]===0;
-    if(qualifies){run++;total++;best=Math.max(best,run);}
-    else if(!rest&&key!==today)run=0;
-    previous=key;
+export const groups = ["push", "pull", "legs"];
+export const exercises = {
+  push: [
+    "Pushups",
+    "Dips",
+    "Diamond pushups",
+    "Incline pushups",
+    "Decline pushups",
+    "Pike pushups",
+  ],
+  pull: [
+    "Pullups",
+    "Chinups",
+    "Neutral grip pullups",
+    "Rows",
+    "Australian pullups",
+  ],
+  legs: [
+    "Bulgarian squats",
+    "Squats",
+    "Lunges",
+    "Reverse lunges",
+    "Step-ups",
+    "Calf raises",
+  ],
+};
+export function dayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+export function initial() {
+  return {
+    version: 1,
+    goals: { push: 100, pull: 30, legs: 40 },
+    quick: [1, 5, 10],
+    selected: Object.fromEntries(
+      groups.map((g) => [
+        g,
+        { exercise: exercises[g][0], weight: 0, side: "both" },
+      ]),
+    ),
+    days: {},
+  };
+}
+export function ensureDay(s, key) {
+  return (
+    s.days[key] ?? (s.days[key] = { goals: goalsForDate(s, key), entries: [] })
+  );
+}
+export function totals(entries, g) {
+  const list = entries.filter((e) => e.group === g);
+  if (g !== "legs") return { count: list.reduce((n, e) => n + e.reps, 0) };
+  const left = list.reduce((n, e) => n + (e.side !== "right" ? e.reps : 0), 0),
+    right = list.reduce((n, e) => n + (e.side !== "left" ? e.reps : 0), 0);
+  return { count: Math.min(left, right), left, right };
+}
+export function validateEntry(e) {
+  return (
+    e &&
+    typeof e.id === "string" &&
+    groups.includes(e.group) &&
+    typeof e.exercise === "string" &&
+    e.exercise.length > 0 &&
+    e.exercise.length <= 80 &&
+    Number.isInteger(e.reps) &&
+    e.reps > 0 &&
+    e.reps <= 10000 &&
+    Number.isFinite(e.weight) &&
+    e.weight >= 0 &&
+    e.weight <= 2000 &&
+    ["both", "left", "right"].includes(e.side) &&
+    Number.isFinite(e.at)
+  );
+}
+export function validateBackup(s) {
+  if (
+    !s ||
+    s.version !== 1 ||
+    !s.days ||
+    typeof s.days !== "object" ||
+    Array.isArray(s.days) ||
+    !s.selected
+  )
+    throw Error("Copia no válida.");
+  const goals = (g) =>
+    g &&
+    groups.every((k) => Number.isInteger(g[k]) && g[k] >= 0 && g[k] <= 10000);
+  if (
+    !goals(s.goals) ||
+    !Array.isArray(s.quick) ||
+    s.quick.length !== 3 ||
+    !s.quick.every((n) => Number.isInteger(n) && n > 0 && n <= 999)
+  )
+    throw Error("Configuración no válida.");
+  for (const g of groups) {
+    const p = s.selected[g];
+    if (
+      !p ||
+      typeof p.exercise !== "string" ||
+      !p.exercise.trim() ||
+      p.exercise.length > 80 ||
+      !Number.isFinite(p.weight) ||
+      p.weight < 0 ||
+      p.weight > 2000 ||
+      !["both", "left", "right"].includes(p.side)
+    )
+      throw Error("Ejercicio no válido.");
   }
-  if(!previous||(previous!==today&&previous!==shiftDay(today,-1)))run=0;
-  return {current:run,best,total};
+  for (const [key, d] of Object.entries(s.days)) {
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(key) ||
+      dayKey(new Date(key + "T12:00:00")) !== key ||
+      !goals(d.goals) ||
+      !Array.isArray(d.entries) ||
+      !d.entries.every(validateEntry) ||
+      new Set(d.entries.map((e) => e.id)).size !== d.entries.length
+    )
+      throw Error("Historial no válido.");
+  }
+  validateExtras(s);
+  return s;
+}
+
+export function shiftDay(key, amount) {
+  const d = new Date(key + "T12:00:00");
+  d.setDate(d.getDate() + amount);
+  return dayKey(d);
+}
+// These optional fields preserve compatibility with all existing version 1 backups.
+export function upgrade(s) {
+  s.favorites ??= [];
+  s.schedules ??= [];
+  s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
+  s.preferences ??= { timerSound: false };
+  return s;
+}
+export function validateExtras(s) {
+  if (
+    s.favorites !== undefined &&
+    (!Array.isArray(s.favorites) ||
+      s.favorites.length > 100 ||
+      !s.favorites.every((f) => validateEntry({ ...f, at: 0 })) ||
+      new Set(s.favorites.map((f) => f.id)).size !== s.favorites.length)
+  )
+    throw Error("Favoritas no válidas.");
+  if (
+    s.schedules !== undefined &&
+    (!Array.isArray(s.schedules) ||
+      !s.schedules.every(
+        (x) =>
+          x &&
+          validDay(x.from) &&
+          Array.isArray(x.week) &&
+          x.week.length === 7 &&
+          x.week.every(
+            (d) => d && groups.every((g) => typeof d[g] === "boolean"),
+          ),
+      ))
+  )
+    throw Error("Calendario no válido.");
+  if (
+    s.backup !== undefined &&
+    (!s.backup ||
+      typeof s.backup.enabled !== "boolean" ||
+      !["lastExportAt", "snoozedUntil"].every(
+        (k) =>
+          s.backup[k] === null ||
+          (Number.isFinite(s.backup[k]) && s.backup[k] >= 0),
+      ))
+  )
+    throw Error("Respaldo no válido.");
+  if (
+    s.preferences !== undefined &&
+    (!s.preferences || typeof s.preferences.timerSound !== "boolean")
+  )
+    throw Error("Preferencias no válidas.");
+}
+export function validDay(k) {
+  return (
+    typeof k === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(k) &&
+    dayKey(new Date(k + "T12:00:00")) === k
+  );
+}
+export function weekPlan(s, key) {
+  const plan = [...(s.schedules ?? [])]
+    .filter((x) => x.from <= key)
+    .sort((a, b) => a.from.localeCompare(b.from))
+    .at(-1);
+  return (
+    plan?.week ??
+    Array.from({ length: 7 }, () =>
+      Object.fromEntries(groups.map((g) => [g, true])),
+    )
+  );
+}
+export function goalsForDate(s, key) {
+  const weekday = (new Date(key + "T12:00:00").getDay() + 6) % 7,
+    week = weekPlan(s, key);
+  return Object.fromEntries(
+    groups.map((g) => [g, week[weekday][g] ? s.goals[g] : 0]),
+  );
+}
+export function setSchedule(s, from, week) {
+  upgrade(s);
+  s.schedules = s.schedules.filter((x) => x.from < from);
+  s.schedules.push({ from, week });
+  ensureDay(s, from).goals = goalsForDate(s, from);
+}
+export function startOfWeek(key) {
+  return shiftDay(key, -((new Date(key + "T12:00:00").getDay() + 6) % 7));
+}
+export function streakStats(s, today, group = null) {
+  const keys = Object.keys(s.days)
+    .filter((k) => k <= today)
+    .sort();
+  if (!keys.length) return { current: 0, best: 0, total: 0 };
+  let run = 0,
+    best = 0,
+    total = 0;
+  for (let key = keys[0]; key <= today; key = shiftDay(key, 1)) {
+    const d = s.days[key],
+      goal = d?.goals[group] ?? (group ? goalsForDate(s, key)[group] : 0);
+    const qualifies = group
+      ? goal > 0 && totals(d?.entries ?? [], group).count >= goal
+      : !!d?.entries.length;
+    const rest =
+      group &&
+      (d
+        ? goal === 0
+        : (s.schedules ?? []).some((x) => x.from <= key) &&
+          !weekPlan(s, key)[(new Date(key + "T12:00:00").getDay() + 6) % 7][
+            group
+          ]);
+    if (qualifies) {
+      run++;
+      total++;
+      best = Math.max(best, run);
+    } else if (!rest && key !== today) run = 0;
+  }
+  return { current: run, best, total };
+}
+export function weeklySummary(s, start, today) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const key = shiftDay(start, i),
+      d = s.days[key],
+      entries = key <= today ? (d?.entries ?? []) : [];
+    return {
+      key,
+      future: key > today,
+      active: entries.length > 0,
+      series: entries.length,
+      counts: Object.fromEntries(
+        groups.map((g) => [g, totals(entries, g).count]),
+      ),
+      met: groups.filter(
+        (g) =>
+          d?.goals[g] > 0 &&
+          totals(entries, g).count >= d.goals[g] &&
+          key <= today,
+      ).length,
+    };
+  });
+  const elapsed = days.filter((d) => !d.future).length,
+    previous = shiftDay(start, -7);
+  const previousCounts = Object.fromEntries(
+    groups.map((g) => [
+      g,
+      Array.from(
+        { length: elapsed },
+        (_, i) => totals(s.days[shiftDay(previous, i)]?.entries ?? [], g).count,
+      ).reduce((a, b) => a + b, 0),
+    ]),
+  );
+  return {
+    days,
+    active: days.filter((d) => d.active).length,
+    series: days.reduce((n, d) => n + d.series, 0),
+    met: days.reduce((n, d) => n + d.met, 0),
+    elapsed,
+    counts: Object.fromEntries(
+      groups.map((g) => [g, days.reduce((n, d) => n + d.counts[g], 0)]),
+    ),
+    previousCounts,
+  };
+}
+export function personalRecords(s, today) {
+  const records = new Map();
+  for (const [key, d] of Object.entries(s.days).sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
+    if (key > today) continue;
+    for (const e of d.entries) {
+      const id = JSON.stringify([
+        e.group,
+        e.exercise.trim().toLocaleLowerCase(),
+        e.weight,
+        e.group === "legs" ? e.side : "both",
+      ]);
+      const old = records.get(id);
+      if (!old || e.reps > old.reps) records.set(id, { ...e, day: key });
+    }
+  }
+  return [...records.values()].sort(
+    (a, b) =>
+      a.group.localeCompare(b.group) ||
+      a.exercise.localeCompare(b.exercise) ||
+      a.weight - b.weight ||
+      a.side.localeCompare(b.side),
+  );
+}
+export function backupDue(s, today, now = Date.now()) {
+  const b = s.backup;
+  if (!b?.enabled || (b.snoozedUntil ?? 0) > now) return false;
+  const active = Object.entries(s.days).filter(
+    ([key, d]) => key <= today && d.entries.length,
+  );
+  if (!b.lastExportAt) return active.length >= 3;
+  return (
+    now - b.lastExportAt >= 7 * 86400000 &&
+    active.some(([, d]) => d.entries.some((e) => e.at > b.lastExportAt))
+  );
 }
