@@ -6,3 +6,21 @@ export function ensureDay(s,key){return s.days[key]??(s.days[key]={goals:{...s.g
 export function totals(entries,g){const list=entries.filter(e=>e.group===g);if(g!=='legs')return {count:list.reduce((n,e)=>n+e.reps,0)};const left=list.reduce((n,e)=>n+(e.side!=='right'?e.reps:0),0),right=list.reduce((n,e)=>n+(e.side!=='left'?e.reps:0),0);return {count:Math.min(left,right),left,right};}
 export function validateEntry(e){return e&&typeof e.id==='string'&&groups.includes(e.group)&&typeof e.exercise==='string'&&e.exercise.length>0&&e.exercise.length<=80&&Number.isInteger(e.reps)&&e.reps>0&&e.reps<=10000&&Number.isFinite(e.weight)&&e.weight>=0&&e.weight<=2000&&['both','left','right'].includes(e.side)&&Number.isFinite(e.at);}
 export function validateBackup(s){if(!s||s.version!==1||!s.days||typeof s.days!=='object'||Array.isArray(s.days)||!s.selected)throw Error('Copia no válida.');const goals=g=>g&&groups.every(k=>Number.isInteger(g[k])&&g[k]>=0&&g[k]<=10000);if(!goals(s.goals)||!Array.isArray(s.quick)||s.quick.length!==3||!s.quick.every(n=>Number.isInteger(n)&&n>0&&n<=999))throw Error('Configuración no válida.');for(const g of groups){const p=s.selected[g];if(!p||typeof p.exercise!=='string'||!p.exercise.trim()||p.exercise.length>80||!Number.isFinite(p.weight)||p.weight<0||p.weight>2000||!['both','left','right'].includes(p.side))throw Error('Ejercicio no válido.');}for(const [key,d]of Object.entries(s.days)){if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||dayKey(new Date(key+'T12:00:00'))!==key||!goals(d.goals)||!Array.isArray(d.entries)||!d.entries.every(validateEntry)||new Set(d.entries.map(e=>e.id)).size!==d.entries.length)throw Error('Historial no válido.');}return s;}
+
+export function shiftDay(key,amount){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+amount);return dayKey(d);}
+// Today remains open until midnight. Explicit zero-goal days preserve group streaks.
+export function streakStats(state,today,group=null){
+  let run=0,best=0,total=0,previous=null;
+  const keys=Object.keys(state.days).filter(k=>k<=today).sort();
+  for(const key of keys){
+    if(previous&&shiftDay(previous,1)!==key)run=0;
+    const d=state.days[key];
+    const qualifies=group?d.goals[group]>0&&totals(d.entries,group).count>=d.goals[group]:d.entries.length>0;
+    const rest=group&&d.goals[group]===0;
+    if(qualifies){run++;total++;best=Math.max(best,run);}
+    else if(!rest&&key!==today)run=0;
+    previous=key;
+  }
+  if(!previous||(previous!==today&&previous!==shiftDay(today,-1)))run=0;
+  return {current:run,best,total};
+}

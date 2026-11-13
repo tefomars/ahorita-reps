@@ -16,6 +16,10 @@ Abre la dirección de GitHub Pages en Safari. Compartir → Agregar a pantalla d
 - Las metas cambian hoy y en días futuros. Las de días anteriores se conservan.
 - El día cambia a medianoche según la hora local del teléfono.
 
+## Historial y rachas
+
+Historial incluye un calendario mensual con actividad y metas completas. La racha general cuenta días consecutivos con cualquier serie. Las rachas por grupo cuentan días cumpliendo la meta de ese día; descansos explícitos con meta 0 las conservan sin sumar. Hoy queda abierto hasta medianoche. Un día sin registros ni descanso guardado interrumpe la racha. Se muestran racha actual, récord y días activos o metas cumplidas. Todo se calcula desde tus registros existentes.
+
 ## Tus datos
 
 Los datos quedan en localStorage de este navegador. No se suben a GitHub ni se sincronizan. Exporta copias JSON en Ajustes. Importar una copia reemplaza los datos actuales, con confirmación. Borrar los datos del sitio o cambiar de dispositivo puede eliminar el historial. Una instalación en pantalla de inicio puede usar almacenamiento distinto del navegador: exporta e importa si necesitas mover registros.
