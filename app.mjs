@@ -1,5 +1,15 @@
+import { createJourneyUI } from "./journey-ui.mjs";
+import {
+  universalFavorites,
+  moveShortcut,
+  appendShortcut,
+} from "./journey-core.mjs";
 import { createSkillsUI } from "./skills-ui.mjs";
-import { skillEntriesOn, skillContributions } from "./skills-core.mjs";
+import {
+  skillEntriesOn,
+  skillContributions,
+  skillCatalog,
+} from "./skills-core.mjs";
 import {
   groups,
   exercises,
@@ -53,7 +63,9 @@ try {
 }
 upgrade(state);
 let progressWeek = startOfWeek(activeDay),
-  recordGroup = "all";
+  recordGroup = "all",
+  progressTab = "summary",
+  detailOpen = false;
 const skillsUI = createSkillsUI({
   getState: () => state,
   getToday: () => activeDay,
@@ -64,6 +76,8 @@ const skillsUI = createSkillsUI({
   esc,
   dateLabel,
   beforeMutation: rollover,
+  openProgress,
+  openExercise,
   ensureCounterDay: (key) => ensureDay(state, key),
   showSkills: () => {
     view = "calistenia";
@@ -76,6 +90,38 @@ const skillsUI = createSkillsUI({
     view = "historial";
     render();
     window.scrollTo(0, 0);
+  },
+});
+const journeyUI = createJourneyUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  esc,
+  render,
+  back: () => {
+    detailOpen = false;
+    render();
+    window.scrollTo(0, 0);
+  },
+  log: (e) => {
+    if (e.source === "base") openBaseLog(e);
+    else skillsUI.prepareLog(e);
+  },
+  pin: (e) => {
+    if (e.source === "base") favoriteForm(baseFromRecord(e));
+    else {
+      const { id, source, at, day, ...data } = e;
+      skillsUI.favoriteEditor(data);
+    }
+  },
+  toggleFocus: (family) => skillsUI.toggleFocus(family),
+  openDay: (e) => {
+    if (e.source === "base") {
+      historyDay = e.day;
+      calendarMonth = e.day.slice(0, 7);
+      view = "historial";
+      render();
+      window.scrollTo(0, 0);
+    } else skillsUI.showHistory(e.day, e.family);
   },
 });
 const weightLabel = (w) => (w ? `+${w} lb` : "Sin peso añadido");
@@ -146,7 +192,7 @@ function today() {
       (g) =>
         d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g],
     ).length;
-  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${backupBanner()}${state.favorites.length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!state.favorites.length ? favoriteSection() : ""}${timerSection()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
+  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${universalFavorites(state).length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!universalFavorites(state).length ? favoriteSection() : ""}${timerSection()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
 }
 function card(g, d) {
   const t = dayTotals(state, activeDay, g),
@@ -434,6 +480,8 @@ $("#main").addEventListener("change", async (e) => {
         const previous = state;
         state = incoming;
         skillsUI.reset();
+        journeyUI.reset();
+        detailOpen = false;
         if (save()) {
           $("#sheet").close();
           render();
@@ -441,6 +489,8 @@ $("#main").addEventListener("change", async (e) => {
         } else {
           state = previous;
           skillsUI.reset();
+          journeyUI.reset();
+          detailOpen = false;
           toast("No se pudo restaurar. Los datos anteriores se conservaron.");
         }
       };
@@ -471,6 +521,7 @@ document.querySelector("nav").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");
   if (b) {
     view = b.dataset.view;
+    if (view === "progreso") detailOpen = false;
     render();
     if (view === "ajustes") offlineStatus();
     window.scrollTo(0, 0);
@@ -504,6 +555,8 @@ window.addEventListener("storage", (e) => {
     try {
       state = upgrade(validateBackup(JSON.parse(e.newValue)));
       skillsUI.reset();
+      journeyUI.reset();
+      detailOpen = false;
       render();
     } catch {
       toast("No se pudo leer el cambio de otra pestaña.");
@@ -514,7 +567,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v7");
+    const cache = await caches.open("ahorita-v8");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -525,11 +578,135 @@ async function offlineStatus() {
       "No fue posible preparar el modo sin conexión en este navegador.";
   }
 }
-function favoriteSection() {
-  if (!state.favorites.length)
-    return '<div class="favorites-empty"><span>★ Tus series, a un toque</span><button class="text-button" data-action="favorite-new">Crear favorita ↗</button></div>';
-  return `<section class="favorites-section" aria-label="Series favoritas"><div class="mini-heading"><h2>★ Favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div><div class="favorite-scroll">${state.favorites.map((f) => `<button class="favorite-chip ${f.group}" data-action="favorite-add" data-id="${esc(f.id)}" aria-label="Registrar favorita: ${esc(f.exercise)}, ${f.reps} reps, ${esc(weightLabel(f.weight))}"><strong>+${f.reps} ${esc(f.exercise)}</strong><small>${labels[f.group]} · ${weightLabel(f.weight)}${f.group === "legs" ? " · " + sideLabel(f.side) : ""}</small></button>`).join("")}</div></section>`;
+function favoriteTitle(f) {
+  return f.kind === "base"
+    ? f.item.exercise
+    : skillCatalog[f.item.family].name + " · " + f.item.variation;
 }
+function favoriteAmount(f) {
+  return f.kind === "base"
+    ? f.item.reps + " reps"
+    : f.item.value + (f.item.metric === "seconds" ? " s" : " reps");
+}
+function favoriteMeta(f) {
+  return f.kind === "base"
+    ? labels[f.item.group] +
+        " · " +
+        weightLabel(f.item.weight) +
+        (f.item.group === "legs" ? " · " + sideLabel(f.item.side) : "")
+    : f.item.movement +
+        " · " +
+        weightLabel(f.item.weight) +
+        (f.item.metric === "reps"
+          ? " · " +
+            (f.item.counterGroup ? labels[f.item.counterGroup] : "Sin contador")
+          : "");
+}
+function favoriteTile(f) {
+  const edit = f.kind === "base" ? "favorite-edit" : "skill-favorite-edit",
+    action = f.kind === "base" ? "favorite-add" : "universal-skill-add";
+  return `<div class="universal-favorite" data-key="${esc(f.key)}"><button class="favorite-chip ${f.kind === "base" ? f.item.group : "skill"}" data-action="${action}" data-id="${esc(f.item.id)}" aria-label="Registrar favorita: ${esc(favoriteTitle(f))}, ${favoriteAmount(f)}, ${esc(favoriteMeta(f))}"><strong>+${favoriteAmount(f)} · ${esc(favoriteTitle(f))}</strong><small>${esc(favoriteMeta(f))}</small></button><button class="favorite-edit-icon" data-action="${edit}" data-id="${esc(f.item.id)}" aria-label="Editar favorita ${esc(favoriteTitle(f))}">···</button></div>`;
+}
+function favoriteSection() {
+  const items = universalFavorites(state);
+  if (!items.length)
+    return '<div class="favorites-empty"><span>★ Tus series, a un toque</span><button class="text-button" data-action="favorite-new">Crear favorita ↗</button></div>';
+  return `<section class="favorites-section" aria-label="Series favoritas"><div class="mini-heading"><h2>★ Favoritas</h2><div>${items.length > 6 ? `<button class="text-button" data-action="favorite-all">Ver todas (${items.length})</button>` : ""}<button class="text-button" data-action="favorite-new">Crear ↗</button></div></div><div class="favorite-scroll">${items.slice(0, 6).map(favoriteTile).join("")}</div></section>`;
+}
+function favoriteManagement() {
+  const items = universalFavorites(state);
+  return `<p>Reps y segundos en un toque desde Hoy. Puedes ordenar tus accesos.</p>${items.length ? items.map((f, i) => `<div class="favorite-manage"><div><strong>${esc(favoriteTitle(f))} · ${favoriteAmount(f)}</strong><small>${esc(favoriteMeta(f))}</small></div><div class="favorite-order"><button class="text-button" data-action="favorite-move" data-key="${esc(f.key)}" data-delta="-1" aria-label="Subir ${esc(favoriteTitle(f))}" ${i === 0 ? "disabled" : ""}>↑</button><button class="text-button" data-action="favorite-move" data-key="${esc(f.key)}" data-delta="1" aria-label="Bajar ${esc(favoriteTitle(f))}" ${i === items.length - 1 ? "disabled" : ""}>↓</button><button class="text-button" data-action="${f.kind === "base" ? "favorite-edit" : "skill-favorite-edit"}" data-id="${esc(f.item.id)}" aria-label="Editar favorita ${esc(favoriteTitle(f))}">Editar</button></div></div>`).join("") : '<p class="note">Crea una favorita desde aquí o desde una serie de Calistenia.</p>'}`;
+}
+function openFavoriteChooser() {
+  openSheet(
+    "Crear favorita",
+    '<p class="note">Elige qué quieres registrar de un toque en Hoy.</p><div class="favorite-choice"><button class="secondary" data-action="favorite-create-base"><strong>Push / Pull / Legs</strong><small>Reps y lastre de un ejercicio habitual</small></button><button class="secondary" data-action="favorite-create-skill"><strong>Calistenia · reps o segundos</strong><small>Variante, equipo, lastre y objetivo diario</small></button></div>',
+  );
+}
+function baseFromRecord(e) {
+  return {
+    group: e.baseGroup,
+    exercise: e.movement,
+    reps: e.value,
+    weight: e.weight,
+    side:
+      e.variation === "Solo izquierda"
+        ? "left"
+        : e.variation === "Solo derecha"
+          ? "right"
+          : "both",
+  };
+}
+function openBaseLog(e) {
+  const f = baseFromRecord(e);
+  openSheet(
+    "Registrar otra serie",
+    `<form id="series-form" data-group="${f.group}" data-mode="custom"><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" required value="${f.reps}"></label>${configForm(f.group, f)}<button class="primary wide">Sumar repeticiones</button></form>`,
+  );
+}
+function openProgress(options = {}) {
+  progressTab = "exercises";
+  detailOpen = false;
+  skillsUI.filterRecords(options.family ?? "all");
+  view = "progreso";
+  render();
+  window.scrollTo(0, 0);
+}
+function openExercise(key) {
+  journeyUI.open(key);
+  detailOpen = true;
+  progressTab = "exercises";
+  view = "progreso";
+  render();
+  window.scrollTo(0, 0);
+}
+function progress() {
+  if (detailOpen) return journeyUI.page();
+  return `${intro("Tu progreso.", "Tu constancia, con todo el detalle.", "PROGRESO")}<div class="panel history-panel"><div class="progress-tabs" role="tablist" aria-label="Progreso"><button role="tab" data-action="progress-tab" data-tab="summary" aria-selected="${progressTab === "summary"}">Resumen semanal</button><button role="tab" data-action="progress-tab" data-tab="exercises" aria-selected="${progressTab === "exercises"}">Ejercicios y marcas</button></div>${skillsUI.focusSection("progress")}${progressTab === "summary" ? weeklyProgress() : skillsUI.recordsPage()}</div>`;
+}
+function handleUniversalFavorites(e) {
+  const b = e.target.closest("[data-action]");
+  if (!b) return;
+  const a = b.dataset.action;
+  if (a === "favorite-create-base") favoriteForm();
+  if (a === "favorite-create-skill") skillsUI.favoriteEditor();
+  if (a === "favorite-all")
+    openSheet(
+      "Todas tus favoritas",
+      `<div class="all-favorites">${universalFavorites(state).map(favoriteTile).join("")}</div>`,
+    );
+  if (a === "universal-skill-add") {
+    skillsUI.logFavorite(b.dataset.id);
+    if (e.currentTarget.id === "sheet") $("#sheet").close();
+  }
+  if (a === "favorite-move") {
+    if (moveShortcut(state, b.dataset.key, Number(b.dataset.delta))) {
+      save();
+      render();
+    }
+  }
+  if (e.currentTarget.id === "sheet" && a === "favorite-add") {
+    const f = state.favorites.find((f) => f.id === b.dataset.id);
+    if (f) {
+      add(f.group, f.reps, {
+        exercise: f.exercise,
+        weight: f.weight,
+        side: f.side,
+      });
+      $("#sheet").close();
+    }
+  }
+  if (e.currentTarget.id === "sheet" && a === "favorite-edit") {
+    const f = state.favorites.find((f) => f.id === b.dataset.id);
+    if (f) favoriteForm(f);
+  }
+  if (a === "progress-tab") {
+    progressTab = b.dataset.tab;
+    detailOpen = false;
+    render();
+  }
+}
+
 function backupBanner() {
   return backupDue(state, activeDay)
     ? '<aside class="backup-banner"><div><strong>Tu constancia merece una copia.</strong><p>Exporta tu historial antes de cambiar de teléfono o reinstalar.</p></div><div><button class="primary" data-action="export">Exportar copia</button><button class="text-button" data-action="backup-snooze">En 7 días</button></div></aside>'
@@ -538,7 +715,7 @@ function backupBanner() {
 function timerSection() {
   return '<section class="rest-section"><div><h2>Descanso opcional</h2><p>Para cuando haces varias series seguidas.</p></div><div class="rest-presets"><button data-action="timer-start" data-seconds="60">60 s</button><button data-action="timer-start" data-seconds="90">90 s</button><button data-action="timer-start" data-seconds="120">2 min</button></div></section>';
 }
-function progress() {
+function weeklyProgress() {
   const start = progressWeek,
     summary = weeklySummary(state, start, activeDay),
     max = Math.max(
@@ -550,17 +727,14 @@ function progress() {
         day: "numeric",
         month: "short",
       });
-  const records = personalRecords(state, activeDay).filter(
-    (r) => recordGroup === "all" || r.group === recordGroup,
-  );
-  return `${intro("Mira lo que sumas.", "Semana a semana, serie a serie.", "PROGRESO")}<div class="panel history-panel"><div class="week-heading"><div><h2>${start === startOfWeek(activeDay) ? "Esta semana" : "Tu semana"}</h2><span>${short(start)} – ${short(shiftDay(start, 6))}</span></div><div><button class="calendar-arrow" data-action="week-prev" aria-label="Semana anterior">‹</button><button class="calendar-arrow" data-action="week-next" aria-label="Semana siguiente" ${start >= startOfWeek(activeDay) ? "disabled" : ""}>›</button></div></div><div class="weekly-kpis"><div><strong>${summary.active}<small> / ${summary.elapsed}</small></strong><span>días con actividad</span></div><div><strong>${summary.met}</strong><span>metas completas</span></div><div><strong>${summary.series}</strong><span>series registradas</span></div></div><div class="weekly-counts">${groups
+  return `<div class="week-heading"><div><h2>${start === startOfWeek(activeDay) ? "Esta semana" : "Tu semana"}</h2><span>${short(start)} – ${short(shiftDay(start, 6))}</span></div><div><button class="calendar-arrow" data-action="week-prev" aria-label="Semana anterior">‹</button><button class="calendar-arrow" data-action="week-next" aria-label="Semana siguiente" ${start >= startOfWeek(activeDay) ? "disabled" : ""}>›</button></div></div><div class="weekly-kpis"><div><strong>${summary.active}<small> / ${summary.elapsed}</small></strong><span>días con actividad</span></div><div><strong>${summary.met}</strong><span>metas completas</span></div><div><strong>${summary.series}</strong><span>series registradas</span></div></div><div class="weekly-counts">${groups
     .map((g) => {
       const delta = summary.counts[g] - summary.previousCounts[g];
       return `<div class="${g}"><span>${labels[g]}</span><strong>${summary.counts[g]}</strong><small>${delta > 0 ? "+" : ""}${delta} vs. anterior${g === "legs" ? "<br>reps por lado" : ""}</small></div>`;
     })
     .join(
       "",
-    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section>${summary.skills.series ? `<div class="skill-week-summary"><strong>Calistenia esta semana</strong><span>${summary.skills.series} series · ${summary.skills.seconds} s de holds · ${summary.skills.reps} reps</span><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>` : ""}<p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras incluyen las reps de calistenia asignadas a cada grupo; Legs cuenta por lado. Toca un día para ver el detalle.</p><section class="records-section"><div class="section-heading"><h2>Récords personales</h2><button class="text-button" data-action="skill-open-records">Todas mis marcas ↗</button></div><div class="record-filters" aria-label="Filtrar récords"><button data-action="record-filter" data-group="all" aria-pressed="${recordGroup === "all"}">Todos</button>${groups.map((g) => `<button data-action="record-filter" data-group="${g}" aria-pressed="${recordGroup === g}">${labels[g]}</button>`).join("")}</div><p class="note">Comparamos el mismo ejercicio, peso y lado. Si corriges una serie, el récord se recalcula.</p>${records.length ? `<div class="entries">${records.map((r) => `<button class="record-row" data-action="week-day" data-day="${r.day}"><span class="badge ${r.group}">${icons[r.group]}</span><span class="entry-info"><strong>${esc(r.exercise)}</strong><small>${weightLabel(r.weight)}${r.group === "legs" ? " · " + sideLabel(r.side) : ""}<br>${short(r.day)} ${r.day.slice(0, 4)}</small></span><span class="record-reps">${r.reps}<small>reps ↗</small></span></button>`).join("")}</div>` : '<div class="empty"><strong>Aquí empieza tu próxima marca.</strong>Registra una serie para crear tu primer récord.</div>'}</section></div>`;
+    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section>${summary.skills.series ? `<div class="skill-week-summary"><strong>Calistenia esta semana</strong><span>${summary.skills.series} series · ${summary.skills.seconds} s de holds · ${summary.skills.reps} reps</span><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>` : ""}<p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras incluyen las reps de calistenia asignadas a cada grupo; Legs cuenta por lado. Toca un día para ver el detalle.</p><button class="secondary wide" data-action="progress-tab" data-tab="exercises">Ver evolución por ejercicio ↗</button>`;
 }
 function settings() {
   const plan = weekPlan(state, activeDay),
@@ -573,13 +747,13 @@ function settings() {
       "Sábado",
       "Domingo",
     ];
-  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div><p>Ejercicio, libras y reps juntos. Tócalas en Hoy para registrar una serie.</p>${state.favorites.length ? state.favorites.map((f) => `<div class="favorite-manage"><div><strong>${esc(f.exercise)} · ${f.reps} reps</strong><small>${labels[f.group]} · ${weightLabel(f.weight)}${f.group === "legs" ? " · " + sideLabel(f.side) : ""}</small></div><button class="text-button" data-action="favorite-edit" data-id="${esc(f.id)}" aria-label="Editar favorita ${esc(f.exercise)}">Editar</button></div>`).join("") : '<p class="note">Aún no tienes favoritas. Crea tu primera serie.</p>'}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar copia</button></div><input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Las series de calistenia en repeticiones pueden sumar a Push, Pull o Legs con «Sumar al objetivo diario». Los holds en segundos se registran aparte. Las series anteriores a esta función conservan su contador; puedes editar una y asignarle un grupo.</p><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
+  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div>${favoriteManagement()}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar copia</button></div><input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Las series de calistenia en repeticiones pueden sumar a Push, Pull o Legs con «Sumar al objetivo diario». Los holds en segundos se registran aparte. Las series anteriores a esta función conservan su contador; puedes editar una y asignarle un grupo.</p><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
 }
 function favoriteForm(f = null) {
   const g = f?.group ?? "push";
   openSheet(
-    f ? "Editar favorita" : "Crear favorita",
-    `<form id="favorite-form" data-id="${f ? esc(f.id) : ""}" data-group="${g}"><label class="field">Grupo<select name="group" id="favorite-group">${groups.map((x) => `<option value="${x}" ${x === g ? "selected" : ""}>${labels[x]}</option>`).join("")}</select></label><div id="favorite-config">${configForm(g, f)}</div><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required value="${f?.reps ?? 10}"></label><div class="sheet-actions">${f ? `<button class="secondary danger" type="button" data-delete-favorite="${esc(f.id)}">Eliminar</button>` : ""}<button class="primary">Guardar favorita</button></div></form>`,
+    f?.id ? "Editar favorita" : "Crear favorita",
+    `<form id="favorite-form" data-id="${f?.id ? esc(f.id) : ""}" data-group="${g}"><label class="field">Grupo<select name="group" id="favorite-group">${groups.map((x) => `<option value="${x}" ${x === g ? "selected" : ""}>${labels[x]}</option>`).join("")}</select></label><div id="favorite-config">${configForm(g, f)}</div><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required value="${f?.reps ?? 10}"></label><div class="sheet-actions">${f?.id ? `<button class="secondary danger" type="button" data-delete-favorite="${esc(f.id)}">Eliminar</button>` : ""}<button class="primary">Guardar favorita</button></div></form>`,
   );
 }
 let restTimer = loadRestTimer(),
@@ -689,7 +863,7 @@ $("#main").addEventListener("click", (e) => {
   const b = e.target.closest("[data-action]");
   if (!b) return;
   const a = b.dataset.action;
-  if (a === "favorite-new") favoriteForm();
+  if (a === "favorite-new") openFavoriteChooser();
   if (a === "favorite-edit") {
     const f = state.favorites.find((f) => f.id === b.dataset.id);
     if (f) favoriteForm(f);
@@ -775,6 +949,7 @@ document.addEventListener("submit", (e) => {
         if (state.favorites.length >= 100)
           throw Error("Puedes guardar hasta 100 favoritas.");
         state.favorites.push(favorite);
+        appendShortcut(state, "base:" + favorite.id);
       }
       save();
       $("#sheet").close();
@@ -830,3 +1005,6 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) renderTimer();
 });
 renderTimer();
+
+$("#main").addEventListener("click", handleUniversalFavorites);
+$("#sheet").addEventListener("click", handleUniversalFavorites);

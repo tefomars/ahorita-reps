@@ -1,10 +1,12 @@
-const CACHE = "ahorita-v7";
+const CACHE = "ahorita-v8";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./core.mjs",
   "./skills-core.mjs",
+  "./journey-core.mjs",
+  "./journey-ui.mjs",
   "./exercise-library.mjs",
   "./skills-ui.mjs",
   "./app.mjs",

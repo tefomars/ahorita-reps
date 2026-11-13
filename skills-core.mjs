@@ -259,9 +259,8 @@ export function skillRecordKey(e) {
     e.support === "Libre" ? "" : norm(e.supportNote),
   ]);
 }
-// Personal bests are derived from sets, never entered separately.
-export function allTimeRecords(s, today) {
-  const records = new Map();
+// A shared stream keeps progression screens and marks on the same source records.
+export function allExerciseEntries(s, today) {
   const list = (s.skills?.entries ?? [])
     .filter((e) => e.day <= today)
     .map((e) => ({ ...e, source: "skill" }));
@@ -293,10 +292,15 @@ export function allTimeRecords(s, today) {
         notes: "",
       });
   }
-  list.sort(
+  return list.sort(
     (a, b) =>
       a.day.localeCompare(b.day) || a.at - b.at || a.id.localeCompare(b.id),
   );
+}
+// Personal bests are derived from sets, never entered separately.
+export function allTimeRecords(s, today) {
+  const records = new Map();
+  const list = allExerciseEntries(s, today);
   for (const e of list) {
     const key = skillRecordKey(e);
     let r = records.get(key);

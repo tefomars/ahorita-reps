@@ -1,3 +1,4 @@
+import { favoriteSignature, appendShortcut } from "./journey-core.mjs";
 import {
   skillCategories,
   infoFor,
@@ -187,7 +188,7 @@ export function createSkillsUI(ctx) {
           .sort((a, b) => b.at - a.at)
           .map(
             (e) =>
-              `<article class="skill-entry"><div class="skill-entry-top"><span class="skill-family-label">${skillCatalog[e.family].name}</span><strong>${amount(e)}</strong></div><h3>${esc(e.movement)} · ${esc(e.variation)}</h3><p>${esc(e.apparatus)} · ${load(e.weight)}<br>${esc(e.support === "Libre" ? "Libre" : `${e.support}: ${e.supportNote}`)}</p><span class="skill-counter-badge">${counterLabel(e)}</span>${e.notes ? `<p class="skill-entry-note">${esc(e.notes)}</p>` : ""}<div class="skill-entry-actions"><small>${new Date(e.at).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}</small><button type="button" class="text-button" data-action="skill-repeat" data-id="${esc(e.id)}" aria-label="Repetir hoy ${esc(e.movement)} ${esc(e.variation)}">Repetir hoy</button><button type="button" class="text-button" data-action="skill-edit" data-id="${esc(e.id)}" aria-label="Editar ${esc(e.movement)} ${esc(e.variation)}">Editar</button></div></article>`,
+              `<article class="skill-entry"><div class="skill-entry-top"><span class="skill-family-label">${skillCatalog[e.family].name}</span><strong>${amount(e)}</strong></div><h3><button class="exercise-title-link" data-action="skill-exercise-detail" data-key="${esc(skillRecordKey({ ...e, source: "skill" }))}">${esc(e.movement)} · ${esc(e.variation)} ↗</button></h3><p>${esc(e.apparatus)} · ${load(e.weight)}<br>${esc(e.support === "Libre" ? "Libre" : `${e.support}: ${e.supportNote}`)}</p><span class="skill-counter-badge">${counterLabel(e)}</span>${e.notes ? `<p class="skill-entry-note">${esc(e.notes)}</p>` : ""}<div class="skill-entry-actions"><small>${new Date(e.at).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}</small><button type="button" class="text-button" data-action="skill-repeat" data-id="${esc(e.id)}" aria-label="Repetir hoy ${esc(e.movement)} ${esc(e.variation)}">Repetir hoy</button><button type="button" class="text-button" data-action="skill-edit" data-id="${esc(e.id)}" aria-label="Editar ${esc(e.movement)} ${esc(e.variation)}">Editar</button></div></article>`,
           )
           .join("")}</div>`
       : '<div class="empty"><strong>Aún no hay series de calistenia este día.</strong>Cada hold y cada rep quedan aquí.</div>';
@@ -206,7 +207,7 @@ export function createSkillsUI(ctx) {
   }
   function logPage() {
     const list = skillEntriesOn(state(), draft.day);
-    return `<section class="skill-log-panel"><div class="skill-panel-heading"><span class="eyebrow">REGISTRAR UNA SERIE</span><h2>Tu práctica, a tu ritmo.</h2></div><button type="button" class="skill-search-launch" data-action="skill-library-open"><span aria-hidden="true">⌕</span><span><strong>Buscar ejercicio</strong><small>Español o inglés · catálogo y recientes</small></span><b aria-hidden="true">↗</b></button><form id="skill-entry-form">${formFields(draft)}<button class="primary wide" type="submit">Guardar serie</button></form></section><div class="section-heading"><h2>${draft.day === today() ? "Hoy en calistenia" : esc(shortDate(draft.day))}</h2><button class="text-button" data-action="skill-tab" data-tab="records">Ver mis marcas ↗</button></div>${dailyStats(list)}${rows(list)}`;
+    return `<section class="skill-log-panel"><div class="skill-panel-heading"><span class="eyebrow">REGISTRAR UNA SERIE</span><h2>Tu práctica, a tu ritmo.</h2></div><button type="button" class="skill-search-launch" data-action="skill-library-open"><span aria-hidden="true">⌕</span><span><strong>Buscar ejercicio</strong><small>Español o inglés · catálogo y recientes</small></span><b aria-hidden="true">↗</b></button><form id="skill-entry-form">${formFields(draft)}<button class="primary wide" type="submit">Guardar serie</button><button class="text-button wide" type="button" data-action="skill-favorite-save">☆ Guardar como favorita en Hoy</button></form></section><div class="section-heading"><h2>${draft.day === today() ? "Hoy en calistenia" : esc(shortDate(draft.day))}</h2><button class="text-button" data-action="skill-tab" data-tab="records">Ver mis marcas ↗</button></div>${dailyStats(list)}${rows(list)}`;
   }
   function historyPage() {
     const list = skillEntriesOn(state(), historyDay).filter(
@@ -238,10 +239,10 @@ export function createSkillsUI(ctx) {
   }
   function recordCard(r) {
     const e = r.exercise;
-    return `<article class="skill-record-card"><div class="mini-heading"><span class="skill-family-label">${familyName(e)}</span><small>${r.series} ${r.series === 1 ? "serie" : "series"}</small></div><h2>${esc(e.movement)}</h2><p class="skill-record-context">${esc(context(e))}</p><div class="skill-record-marks"><div><span>${e.metric === "seconds" ? "Mejor tiempo" : "Máximas reps"}</span><strong>${num(r.best.value)}<small> ${e.metric === "seconds" ? "s" : "reps"}</small></strong><p>${load(r.best.weight)}</p>${recordDate(r.best)}</div><div><span>Máximo lastre</span><strong>${r.heaviest.weight ? `+${num(r.heaviest.weight)}<small> lb</small>` : "0<small> lb</small>"}</strong><p>${amount(r.heaviest)}${r.heaviest.weight ? "" : " · sin lastre"}</p>${recordDate(r.heaviest)}</div></div><details class="skill-load-details"><summary>Mejor serie por lastre (${r.byWeight.length})</summary>${r.byWeight.map((b) => `<div><span>${load(b.weight)}</span><strong>${amount(b)}</strong>${recordDate(b)}</div>`).join("")}</details></article>`;
+    return `<article class="skill-record-card"><div class="mini-heading"><span class="skill-family-label">${familyName(e)}</span><small>${r.series} ${r.series === 1 ? "serie" : "series"}</small></div><h2>${esc(e.movement)}</h2><p class="skill-record-context">${esc(context(e))}</p><div class="skill-record-marks"><div><span>${e.metric === "seconds" ? "Mejor tiempo" : "Máximas reps"}</span><strong>${num(r.best.value)}<small> ${e.metric === "seconds" ? "s" : "reps"}</small></strong><p>${load(r.best.weight)}</p>${recordDate(r.best)}</div><div><span>Máximo lastre</span><strong>${r.heaviest.weight ? `+${num(r.heaviest.weight)}<small> lb</small>` : "0<small> lb</small>"}</strong><p>${amount(r.heaviest)}${r.heaviest.weight ? "" : " · sin lastre"}</p>${recordDate(r.heaviest)}</div></div><button class="secondary wide" data-action="skill-exercise-detail" data-key="${esc(r.key)}">Ver evolución ↗</button><details class="skill-load-details"><summary>Mejor serie por lastre (${r.byWeight.length})</summary>${r.byWeight.map((b) => `<div><span>${load(b.weight)}</span><strong>${amount(b)}</strong>${recordDate(b)}</div>`).join("")}</details></article>`;
   }
   function recordsPage() {
-    return `<div class="skill-record-intro"><span class="eyebrow">TUS MARCAS DE SIEMPRE</span><h2>Las ganas las pones tú.<br>Las marcas se guardan solas.</h2><p>Mejor serie y máximo lastre de todo tu historial, con fecha y detalle. Incluye tus registros de Push / Pull / Legs.</p></div><label class="field">Ver marcas de<select name="skill-record-family">${familyFilter(recordFamily, true)}</select></label><p class="note">Cada movimiento, variante, equipo y asistencia se compara por separado. Abre «por lastre» para comparar la misma carga. Las marcas cambian al editar o eliminar series.</p><label class="field">Buscar mis marcas<input name="skill-record-search" type="search" value="${esc(recordSearch)}" autocomplete="off" placeholder="Ej. bandera, pull-ups, dominadas…"></label><div id="skill-record-results">${recordResults()}</div>`;
+    return `<div class="mini-heading"><h2>Marcas y ejercicios</h2><button class="text-button" data-action="skill-focus-manage">Mis enfoques ☆</button></div><p class="note">Tus series de Hoy y Calistenia alimentan estas mismas fichas. Toca «Ver evolución» para revisar una variante y su carga.</p><label class="field">Ver marcas de<select name="skill-record-family">${familyFilter(recordFamily, true)}</select></label><p class="note">Cada movimiento, variante, equipo y asistencia se compara por separado. Abre «por lastre» para comparar la misma carga. Las marcas cambian al editar o eliminar series.</p><label class="field">Buscar mis marcas<input name="skill-record-search" type="search" value="${esc(recordSearch)}" autocomplete="off" placeholder="Ej. bandera, pull-ups, dominadas…"></label><div id="skill-record-results">${recordResults()}</div>`;
   }
   function page() {
     syncDay();
@@ -256,7 +257,7 @@ export function createSkillsUI(ctx) {
       )
       .join(
         "",
-      )}</div>${tab === "log" ? logPage() : tab === "history" ? historyPage() : recordsPage()}</div>`;
+      )}</div>${tab === "log" ? focusSection("log") + logPage() : historyPage()}</div>`;
   }
   function saveEntry(data, editingId = null) {
     ctx.beforeMutation?.();
@@ -346,6 +347,7 @@ export function createSkillsUI(ctx) {
           : libraryCategory === "all"
             ? 10
             : 100,
+      state().focusSkills,
     );
     const personal = personalChoices()
       .filter(
@@ -415,6 +417,11 @@ export function createSkillsUI(ctx) {
         (recordFamily === "all" || r.exercise.family === recordFamily) &&
         matchesSkillSearch(skillCatalog, recordSearch, r.exercise),
     );
+    records.sort((a, b) => {
+      const ai = state().focusSkills.indexOf(a.exercise.family),
+        bi = state().focusSkills.indexOf(b.exercise.family);
+      return (ai < 0 ? 100 : ai) - (bi < 0 ? 100 : bi);
+    });
     return `<p class="quiet" role="status">${records.length} ${records.length === 1 ? "ejercicio" : "ejercicios"}</p>${records.length ? `<div class="skill-records">${records.map(recordCard).join("")}</div>` : '<div class="empty"><strong>Sin marcas con ese filtro.</strong>Busca otro nombre o registra tu primera serie.</div>'}`;
   }
   function historyResults() {
@@ -425,10 +432,172 @@ export function createSkillsUI(ctx) {
     );
     return `<p class="quiet">${esc(dateLabel(historyDay))}</p>${dailyStats(list)}${rows(list)}`;
   }
+  function saveFavorite(data, editingId = null) {
+    const { id, day, at, source, baseGroup, ...config } = data,
+      favorite = { ...config, id: editingId ?? crypto.randomUUID() };
+    if (!validSkillEntry({ ...favorite, day: today(), at: 0 }))
+      throw Error("Indica una cantidad válida y revisa la configuración.");
+    if (
+      state().skillFavorites.some(
+        (f) =>
+          f.id !== favorite.id &&
+          favoriteSignature(f) === favoriteSignature(favorite),
+      )
+    )
+      throw Error("Esa serie ya está entre tus favoritas.");
+    const index = state().skillFavorites.findIndex((f) => f.id === favorite.id);
+    if (index >= 0) state().skillFavorites[index] = favorite;
+    else {
+      if (state().skillFavorites.length >= 100)
+        throw Error("Puedes guardar hasta 100 favoritas de calistenia.");
+      state().skillFavorites.push(favorite);
+      appendShortcut(state(), "skill:" + favorite.id);
+    }
+    if (save()) {
+      document.querySelector("#sheet").close();
+      render();
+      toast("Favorita guardada en Hoy");
+    }
+    return favorite;
+  }
+  function favoriteFooter(id) {
+    return `<div class="sheet-actions">${id ? `<button type="button" class="secondary danger" data-action="skill-favorite-delete" data-id="${esc(id)}">Eliminar</button>` : ""}<button class="primary" type="submit">Guardar favorita</button></div>`;
+  }
+  function favoriteEditor(value = null) {
+    const f =
+      typeof value === "string"
+        ? state().skillFavorites.find((f) => f.id === value)
+        : value;
+    if (typeof value === "string" && !f) return;
+    const data = f ?? {
+      ...counterDefaults(state().skills.selected),
+      value: "",
+    };
+    openSheet(
+      f?.id ? "Editar favorita" : "Fijar serie en Hoy",
+      `<form id="skill-favorite-form" data-id="${f?.id ? esc(f.id) : ""}">${formFields({ ...counterDefaults(data), day: today() }).replace("Equipo, lastre y fecha", "Equipo y lastre")}${favoriteFooter(f?.id)}</form>`,
+    );
+  }
+  function saveCurrentFavorite() {
+    const form = document.querySelector("#skill-entry-form");
+    if (!form || !form.reportValidity()) return;
+    try {
+      const data = readForm(form);
+      draft = data;
+      saveFavorite(data);
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+  function preferredConfig(family) {
+    const last = [...state().skills.entries]
+      .filter((e) => e.family === family && e.day <= today())
+      .sort((a, b) => b.at - a.at)[0];
+    return counterDefaults(last ?? defaultSkill(family));
+  }
+  function prepareLog(config) {
+    const { id, at, source, baseGroup, ...data } = config;
+    draft = { ...counterDefaults(data), day: today(), value: "", notes: "" };
+    tab = "log";
+    ctx.showSkills();
+  }
+  function toggleFocus(family) {
+    if (family === "other" || !Object.hasOwn(skillCatalog, family)) return;
+    const index = state().focusSkills.indexOf(family);
+    if (index >= 0) state().focusSkills.splice(index, 1);
+    else {
+      if (state().focusSkills.length >= 6) {
+        toast("Puedes fijar hasta 6 enfoques.");
+        return;
+      }
+      state().focusSkills.push(family);
+    }
+    save();
+    render();
+  }
+  let focusDraft = new Set(),
+    focusQuery = "";
+  function focusChoices() {
+    const matches = new Set(
+      searchSkillLibrary(skillCatalog, focusQuery, "all", 100).map(
+        (r) => r.family,
+      ),
+    );
+    return (
+      Object.entries(skillCatalog)
+        .filter(
+          ([family]) =>
+            family !== "other" && (!focusQuery || matches.has(family)),
+        )
+        .sort(
+          ([a], [b]) =>
+            Number(focusDraft.has(b)) - Number(focusDraft.has(a)) ||
+            skillCatalog[a].name.localeCompare(skillCatalog[b].name),
+        )
+        .map(
+          ([family, c]) =>
+            `<label class="focus-choice"><input type="checkbox" data-focus-family="${family}" ${focusDraft.has(family) ? "checked" : ""}><span><strong>${c.name}</strong><small>${esc(infoFor(skillCatalog, family).es)}</small></span></label>`,
+        )
+        .join("") || '<p class="note">No encontré esa habilidad.</p>'
+    );
+  }
+  function openFocus() {
+    focusDraft = new Set(state().focusSkills);
+    focusQuery = "";
+    openSheet(
+      "Tus enfoques",
+      `<p class="note">Fija hasta 6 habilidades para encontrarlas primero. Puedes cambiarlas cuando quieras.</p><label class="field">Buscar habilidad<input type="search" name="focus-search" autocomplete="off" placeholder="Front lever, bandera, pino…"></label><div id="focus-choices">${focusChoices()}</div><div class="focus-save"><span id="focus-count">${focusDraft.size}/6 elegidos</span><button class="primary" data-action="skill-focus-save">Guardar enfoques</button></div>`,
+    );
+  }
+  function focusSection(mode = "log") {
+    return `<section class="focus-section"><div class="mini-heading"><h2>Mis enfoques</h2><button class="text-button" data-action="skill-focus-manage">${state().focusSkills.length ? "Editar" : "Elegir"} ↗</button></div>${
+      state().focusSkills.length
+        ? `<div class="focus-pills">${state()
+            .focusSkills.map(
+              (family) =>
+                `<button data-action="${mode === "log" ? "skill-focus-log" : "skill-focus-progress"}" data-family="${family}">★ ${skillCatalog[family].name}</button>`,
+            )
+            .join("")}</div>`
+        : '<p class="note">Elige las habilidades que quieres tener a mano.</p>'
+    }</section>`;
+  }
   function handleClick(e) {
     const b = e.target.closest('[data-action^="skill-"]');
     if (!b) return;
     const a = b.dataset.action;
+    if (a === "skill-exercise-detail") {
+      ctx.openExercise(b.dataset.key);
+      return;
+    }
+    if (a === "skill-favorite-save") saveCurrentFavorite();
+    if (a === "skill-favorite-edit") favoriteEditor(b.dataset.id);
+    if (a === "skill-favorite-delete") {
+      const i = state().skillFavorites.findIndex((f) => f.id === b.dataset.id),
+        f = state().skillFavorites[i];
+      if (f) {
+        state().skillFavorites.splice(i, 1);
+        save();
+        document.querySelector("#sheet").close();
+        render();
+        toast("Favorita eliminada", () => {
+          state().skillFavorites.splice(i, 0, f);
+          save();
+          render();
+        });
+      }
+    }
+    if (a === "skill-focus-manage") openFocus();
+    if (a === "skill-focus-save") {
+      state().focusSkills = [...focusDraft];
+      save();
+      document.querySelector("#sheet").close();
+      render();
+      toast("Enfoques guardados");
+    }
+    if (a === "skill-focus-log") prepareLog(preferredConfig(b.dataset.family));
+    if (a === "skill-focus-progress")
+      ctx.openProgress({ family: b.dataset.family });
+
     if (a === "skill-library-open") openLibrary();
     if (a === "skill-library-category") {
       libraryCategory = b.dataset.category;
@@ -467,6 +636,12 @@ export function createSkillsUI(ctx) {
     }
 
     if (a === "skill-tab") {
+      if (b.dataset.tab === "records") {
+        ctx.openProgress({
+          family: draft.family === "other" ? "all" : draft.family,
+        });
+        return;
+      }
       tab = b.dataset.tab;
       if (!["log", "history", "records"].includes(tab)) tab = "log";
       render();
@@ -514,13 +689,28 @@ export function createSkillsUI(ctx) {
         ctx.showSkills();
       }
     }
-    if (a === "skill-open-records") {
-      tab = "records";
-      ctx.showSkills();
-    }
+    if (a === "skill-open-records")
+      ctx.openProgress({ family: b.dataset.family ?? "all" });
   }
   function handleChange(e) {
-    const form = e.target.closest("#skill-entry-form,#skill-edit-form");
+    if (e.target.dataset.focusFamily) {
+      const family = e.target.dataset.focusFamily;
+      if (e.target.checked) {
+        if (focusDraft.size >= 6) {
+          e.target.checked = false;
+          document.querySelector("#focus-count").textContent =
+            "Máximo 6 enfoques";
+          toast("Puedes elegir hasta 6 enfoques.");
+          return;
+        }
+        focusDraft.add(family);
+      } else focusDraft.delete(family);
+      document.querySelector("#focus-count").textContent =
+        focusDraft.size + "/6 elegidos";
+    }
+    const form = e.target.closest(
+      "#skill-entry-form,#skill-edit-form,#skill-favorite-form",
+    );
     if (form) {
       const name = e.target.name;
       if (["movement", "variation", "apparatus"].includes(name)) {
@@ -576,7 +766,11 @@ export function createSkillsUI(ctx) {
           d.counterGroup = suggestedCounterGroup(d);
           d.counterSide = inferCounterSide(d);
         } else if (name === "day") d.day = d.day || today();
-        if (form.id === "skill-edit-form") {
+        if (form.id === "skill-favorite-form") {
+          form.innerHTML =
+            formFields(d).replace("Equipo, lastre y fecha", "Equipo y lastre") +
+            favoriteFooter(form.dataset.id);
+        } else if (form.id === "skill-edit-form") {
           form.innerHTML = `${formFields(d)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(form.dataset.id)}">Eliminar</button><button class="primary">Guardar cambios</button></div>`;
         } else {
           draft = d;
@@ -598,6 +792,24 @@ export function createSkillsUI(ctx) {
     }
   }
   function handleSubmit(e) {
+    if (e.target.id === "skill-favorite-form") {
+      e.preventDefault();
+      try {
+        saveFavorite(readForm(e.target), e.target.dataset.id || null);
+      } catch (err) {
+        let error = e.target.querySelector("[data-favorite-error]");
+        if (!error) {
+          error = document.createElement("p");
+          error.dataset.favoriteError = "";
+          error.className = "note danger";
+          error.setAttribute("role", "alert");
+          e.target.prepend(error);
+        }
+        error.textContent = err.message;
+        toast(err.message);
+      }
+      return;
+    }
     if (!["skill-entry-form", "skill-edit-form"].includes(e.target.id)) return;
     e.preventDefault();
     const form = e.target;
@@ -611,6 +823,10 @@ export function createSkillsUI(ctx) {
     }
   }
   function handleInput(e) {
+    if (e.target.name === "focus-search") {
+      focusQuery = e.target.value;
+      document.querySelector("#focus-choices").innerHTML = focusChoices();
+    }
     if (e.target.name === "skill-library-query") {
       libraryQuery = e.target.value;
       updateLibrary();
@@ -635,6 +851,27 @@ export function createSkillsUI(ctx) {
   document.addEventListener("submit", handleSubmit);
   return {
     page,
+    recordsPage,
+    focusSection,
+    openFocus,
+    toggleFocus,
+    favoriteEditor,
+    prepareLog,
+    filterRecords(family = "all") {
+      recordFamily = family;
+      recordSearch = "";
+    },
+    logFavorite(id) {
+      const f = state().skillFavorites.find((f) => f.id === id);
+      if (f) saveEntry({ ...f, day: today() });
+    },
+    showHistory(day, family = "all") {
+      historyDay = day;
+      historyFamily = family;
+      historySearch = "";
+      tab = "history";
+      ctx.showSkills();
+    },
     daySection(day, { counterOnly = false } = {}) {
       const list = skillEntriesOn(state(), day).filter(
         (e) => !counterOnly || skillCounterGroup(e),

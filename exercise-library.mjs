@@ -735,7 +735,12 @@ export function searchSkillLibrary(
   query = "",
   category = "all",
   limit = 16,
+  focus = [],
 ) {
+  const focusRank = (family) => {
+    const i = focus.indexOf(family);
+    return i < 0 ? 100 : i;
+  };
   const q = normalizeSearch(query),
     results = [];
   for (const [family, c] of Object.entries(catalog)) {
@@ -813,6 +818,7 @@ export function searchSkillLibrary(
     return [...first.values()]
       .sort(
         (a, b) =>
+          focusRank(a.family) - focusRank(b.family) ||
           (featured.includes(a.family) ? featured.indexOf(a.family) : 100) -
             (featured.includes(b.family) ? featured.indexOf(b.family) : 100) ||
           a.name.localeCompare(b.name),
@@ -823,6 +829,7 @@ export function searchSkillLibrary(
     .sort(
       (a, b) =>
         b.score - a.score ||
+        focusRank(a.family) - focusRank(b.family) ||
         a.name.localeCompare(b.name) ||
         a.movement.localeCompare(b.movement),
     )

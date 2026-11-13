@@ -1,3 +1,4 @@
+import { validateJourney } from "./journey-core.mjs";
 import {
   defaultSkillStore,
   validateSkillStore,
@@ -141,6 +142,9 @@ export function shiftDay(key, amount) {
 // These optional fields preserve compatibility with all existing version 1 backups.
 export function upgrade(s) {
   s.favorites ??= [];
+  s.skillFavorites ??= [];
+  s.shortcutOrder ??= [];
+  s.focusSkills ??= [];
   s.schedules ??= [];
   s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
   s.preferences ??= { timerSound: false };
@@ -148,6 +152,7 @@ export function upgrade(s) {
   return s;
 }
 export function validateExtras(s) {
+  validateJourney(s);
   if (s.skills !== undefined) validateSkillStore(s.skills);
   if (
     s.favorites !== undefined &&

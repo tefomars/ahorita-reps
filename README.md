@@ -21,12 +21,12 @@ Para actualizar, **conserva el icono**: cierra y vuelve a abrir con internet. Si
 - Toca la meta para editarla. Cambia el objetivo de hoy y el objetivo base para futuros días de entrenamiento. 0 es descanso.
 - Dos mancuernas de 15 lb se registran como **+30 lb**: peso añadido total.
 - Legs cuenta por pierna. «Ambas» suma la cantidad a cada lado; también admite solo izquierda o derecha. El contador usa el lado con menos reps para completar la meta.
-- Las series favoritas guardan grupo, ejercicio, peso y reps. Créalas en Hoy o Ajustes y tócalas en Hoy para sumar esa serie completa. Edita y elimina favoritas en Ajustes.
+- Las favoritas de Hoy pueden mezclar series de Push/Pull/Legs con progresiones de calistenia en reps o segundos. Un toque registra la serie completa. Crear o editar una favorita no registra una serie. Reordénalas en Ajustes y edítalas desde su botón ··· en Hoy. Se muestran las primeras seis con acceso a todas cuando hay más.
 - Puedes editar o eliminar series desde ··· en el historial. Deshacer revierte la acción indicada durante unos segundos.
 
 ## Calistenia: progresiones y marcas automáticas
 
-Abre **Calistenia** en la barra inferior. Tiene tres menús: **Registrar**, **Historial** y **Marcas**.
+Abre **Calistenia** en la barra inferior. Tiene accesos a **Registrar**, **Historial** y **Marcas**. Marcas abre la vista compartida de **Progreso → Ejercicios y marcas**, filtrada por la habilidad actual.
 
 ### Buscar sin llenar la pantalla
 
@@ -82,6 +82,39 @@ Este menú también incluye los máximos de tus ejercicios de **Push/Pull/Legs**
 
 La práctica de calistenia también cuenta como actividad en el calendario y en la racha general. Progreso incluye sus series, segundos y reps en un resumen semanal. Las repeticiones asignadas a Push/Pull/Legs también aparecen en sus metas, barras y rachas. Cada serie se cuenta una sola vez en el total de series.
 
+## De Hoy a la evolución de cada ejercicio
+
+### Favoritas universales
+
+Desde Hoy → Crear favorita elige Push/Pull/Legs o Calistenia. En Calistenia, escribe la cantidad y usa «Guardar como favorita en Hoy» para fijar exactamente esa serie (variante, equipo, segundos/reps, lastre, asistencia y grupo de objetivo). Crear una favorita no agrega actividad: tocar su acceso en Hoy sí registra una serie nueva, con opción de deshacer.
+
+Cada favorita tiene un botón ··· para editarla. Ajustes → Series favoritas permite subirlas y bajarlas en el orden. Si hay más de seis, «Ver todas» permite registrar cualquiera. Las favoritas anteriores se conservan.
+
+### Una sola vista de marcas
+
+Progreso tiene **Resumen semanal** y **Ejercicios y marcas**. Los accesos «Marcas» y «Mis marcas» de Calistenia llevan a esta misma vista. La búsqueda bilingüe y los filtros se mantienen allí. No hay que ingresar máximos a mano.
+
+### Ficha de evolución
+
+«Ver evolución» abre la ficha del ejercicio y variante, con:
+
+- Última serie y fecha, mejor serie, días de práctica y cantidad acumulada.
+- Selector de variante que mantiene los registros separados.
+- Tiempo o reps **a la misma carga**, eligiendo las lb a comparar.
+- Gráfica de la mejor serie diaria, con periodos de 30 días, 90 días o Todo.
+- Modo **Lastre** para ver el mayor lastre de cada día, mostrando también sus reps/segundos.
+- Puntos seleccionables y una lista de fechas para consultar los valores.
+- Series recientes y acceso a su día para revisar o corregir.
+- «Registrar otra serie» y «Fijar una serie» para preparar una favorita con esos datos.
+
+El resumen numérico abarca todo el historial de la carga seleccionada; el filtro de fechas se aplica a la gráfica. En modo Lastre, el resumen usa todas las cargas de esa variante. Un día con varias series aporta su mejor serie al punto de la gráfica. Variantes, equipos y ayudas distintos conservan sus propias fichas.
+
+### Habilidades de enfoque
+
+En Calistenia o Progreso → **Mis enfoques**, elige hasta seis habilidades. Aparecen como accesos rápidos y se priorizan en el catálogo y la lista de marcas. Desde una ficha puedes usar la estrella para fijar o quitar su familia. La elección no prescribe una rutina ni altera metas, registros o récords.
+
+Las favoritas universales, su orden y los enfoques se incluyen en las copias JSON. Las copias de versiones anteriores siguen siendo compatibles.
+
 ## Calendario de entrenamiento
 
 Ajustes → Tu semana de entrenamiento permite marcar los grupos de cada día, de lunes a domingo. Un grupo desmarcado descansa y su meta es 0 ese día. El calendario nuevo se aplica **desde hoy** y conserva los días anteriores. Puedes entrenar también en un día de descanso: las series se guardan igual.
@@ -131,7 +164,9 @@ No requiere dependencias, compilación, base de datos ni claves API.
 - `index.html`: estructura, navegación y metadatos para iPhone.
 - `app.mjs`: interfaz, registro, favoritos, temporizador y copias.
 - `core.mjs`: cálculos, validación, calendario, rachas y estadísticas.
-- `skills-core.mjs`: catálogo, validación y marcas automáticas de calistenia.
+- `skills-core.mjs`: catálogo, validación, flujo común de series y marcas automáticas de calistenia.
+- `journey-core.mjs`: favoritas universales, enfoques y cálculo de fichas/gráficas por ejercicio.
+- `journey-ui.mjs`: fichas interactivas de evolución por variante y carga.
 - `skills-ui.mjs`: registro, buscador, historial y marcas de calistenia.
 - `exercise-library.mjs`: catálogo, categorías y alias de búsqueda en inglés y español.
 - `style.css`: diseño adaptable.
