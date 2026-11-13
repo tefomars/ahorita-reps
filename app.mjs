@@ -1,12 +1,11 @@
 import { createSkillsUI } from "./skills-ui.mjs";
-import { skillEntriesOn } from "./skills-core.mjs";
+import { skillEntriesOn, skillContributions } from "./skills-core.mjs";
 import {
   groups,
   exercises,
   dayKey,
   initial,
   ensureDay,
-  totals,
   validateBackup,
   validateEntry,
   shiftDay,
@@ -20,6 +19,7 @@ import {
   personalRecords,
   backupDue,
   hasActivity,
+  dayTotals,
 } from "./core.mjs";
 const KEY = "ahorita.v1",
   labels = { push: "Push", pull: "Pull", legs: "Legs" },
@@ -64,6 +64,7 @@ const skillsUI = createSkillsUI({
   esc,
   dateLabel,
   beforeMutation: rollover,
+  ensureCounterDay: (key) => ensureDay(state, key),
   showSkills: () => {
     view = "calistenia";
     render();
@@ -142,12 +143,13 @@ function intro(title, sub, eyebrow = "A TU RITMO") {
 function today() {
   const d = current(),
     done = groups.filter(
-      (g) => d.goals[g] > 0 && totals(d.entries, g).count >= d.goals[g],
+      (g) =>
+        d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g],
     ).length;
-  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && totals(d.entries, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${backupBanner()}${state.favorites.length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!state.favorites.length ? favoriteSection() : ""}${timerSection()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length} series</span></div>${entries(d.entries, activeDay)}`;
+  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${backupBanner()}${state.favorites.length ? favoriteSection() : ""}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${!state.favorites.length ? favoriteSection() : ""}${timerSection()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
 }
 function card(g, d) {
-  const t = totals(d.entries, g),
+  const t = dayTotals(state, activeDay, g),
     goal = d.goals[g],
     p = state.selected[g],
     remaining = Math.max(0, goal - t.count);
@@ -157,7 +159,7 @@ function card(g, d) {
       : t.count >= goal
         ? "Meta completa. Bien hecho."
         : `Faltan ${remaining}${g === "legs" ? " por pierna" : " reps"}`;
-  return `<section class="card ${g}" aria-label="${labels[g]}"><div class="card-top"><div class="card-heading"><div class="group-label"><span class="group-icon">${icons[g]}</span><h2>${labels[g]}</h2></div><button class="goal" data-action="goal" data-group="${g}" aria-label="Editar meta de ${labels[g]}">Meta ${goal} ↗</button></div><div class="card-body"><div><div class="counter"><strong id="count-${g}">${t.count}</strong><span>/ ${goal}${g === "legs" ? " <small>por lado</small>" : ""}</span></div><div class="progress" role="progressbar" aria-label="Meta ${labels[g]}" aria-valuemin="0" aria-valuemax="${goal || 1}" aria-valuenow="${Math.min(t.count, goal || 1)}"><i style="width:${goal ? Math.min(100, (t.count / goal) * 100) : 0}%"></i></div><p class="remaining">${g === "legs" && t.left !== t.right ? `Izq. ${t.left} · Der. ${t.right} · ` : ""}${hint}</p></div><button class="config" data-action="config" data-group="${g}" aria-label="Cambiar ejercicio y peso de ${labels[g]}"><span><strong>${esc(p.exercise)}</strong><small>${esc(weightLabel(p.weight))}${g === "legs" ? ` · ${sideLabel(p.side)}` : ""}</small></span><span>⌄</span></button></div></div><div class="quick">${state.quick.map((n) => `<button data-action="add" data-group="${g}" data-reps="${n}" aria-label="Sumar ${n} a ${labels[g]}">+${n}</button>`).join("")}<button class="custom" data-action="custom" data-group="${g}" aria-label="Otra cantidad para ${labels[g]}">···</button></div></section>`;
+  return `<section class="card ${g}" aria-label="${labels[g]}"><div class="card-top"><div class="card-heading"><div class="group-label"><span class="group-icon">${icons[g]}</span><h2>${labels[g]}</h2></div><button class="goal" data-action="goal" data-group="${g}" aria-label="Editar meta de ${labels[g]}">Meta ${goal} ↗</button></div><div class="card-body"><div><div class="counter"><strong id="count-${g}">${t.count}</strong><span>/ ${goal}${g === "legs" ? " <small>por lado</small>" : ""}</span></div><div class="progress" role="progressbar" aria-label="Meta ${labels[g]}" aria-valuemin="0" aria-valuemax="${goal || 1}" aria-valuenow="${Math.min(t.count, goal || 1)}"><i style="width:${goal ? Math.min(100, (t.count / goal) * 100) : 0}%"></i></div><p class="remaining">${g === "legs" && t.left !== t.right ? `Izq. ${t.left} · Der. ${t.right} · ` : ""}${hint}${skillContributions(state, activeDay).some((e) => e.group === g) ? " · Incluye calistenia" : ""}</p></div><button class="config" data-action="config" data-group="${g}" aria-label="Cambiar ejercicio y peso de ${labels[g]}"><span><strong>${esc(p.exercise)}</strong><small>${esc(weightLabel(p.weight))}${g === "legs" ? ` · ${sideLabel(p.side)}` : ""}</small></span><span>⌄</span></button></div></div><div class="quick">${state.quick.map((n) => `<button data-action="add" data-group="${g}" data-reps="${n}" aria-label="Sumar ${n} a ${labels[g]}">+${n}</button>`).join("")}<button class="custom" data-action="custom" data-group="${g}" aria-label="Otra cantidad para ${labels[g]}">···</button></div></section>`;
 }
 function entries(list, key) {
   return list.length
@@ -171,7 +173,10 @@ function entries(list, key) {
     : '<div class="empty"><strong>Tu siguiente serie empieza aquí.</strong>Toca un + para guardar tus primeras reps.</div>';
 }
 function history() {
-  const d = state.days[historyDay] ?? { goals: state.goals, entries: [] },
+  const d = state.days[historyDay] ?? {
+      goals: goalsForDate(state, historyDay),
+      entries: [],
+    },
     streak = streakStats(state, activeDay);
   return `${intro("Tu constancia.", "Cada día tiene su propia historia.", "HISTORIAL")}<div class="panel history-panel"><section class="streak-hero" aria-label="Racha general"><div><span class="eyebrow">RACHA DE ACTIVIDAD</span><div class="streak-count">${streak.current}<span>${streak.current === 1 ? "día" : "días"}</span><span class="streak-spark" aria-hidden="true">✦</span></div><p>Un día cuenta al registrar cualquier serie.</p></div><div class="streak-record"><strong>${streak.best}</strong><span>mejor racha</span><strong>${streak.total}</strong><span>días activos</span></div></section><div class="group-streaks">${groups
     .map((g) => {
@@ -180,7 +185,7 @@ function history() {
     })
     .join(
       "",
-    )}</div><p class="note streak-explainer">Las rachas de Push, Pull y Legs cuentan días cumpliendo su meta. Los descansos con meta 0 conservan esa racha sin sumar días. Hoy tienes hasta medianoche para continuar.</p>${calendar()}<div class="section-heading"><h2>Detalle del día</h2></div><div class="history-date"><input aria-label="Día del historial" type="date" id="history-date" max="${activeDay}" value="${historyDay}"><span class="quiet">${d.entries.length + skillEntriesOn(state, historyDay).length} series</span></div><div class="history-stats">${groups.map((g) => `<div class="stat"><small>${labels[g]}</small><strong>${totals(d.entries, g).count}</strong> <span>/ ${d.goals[g]}${g === "legs" ? " por lado" : ""}</span></div>`).join("")}</div><p class="quiet">${esc(dateLabel(historyDay))}</p>${d.entries.length ? entries(d.entries, historyDay) : skillEntriesOn(state, historyDay).length ? '<p class="note">Tu práctica de calistenia de este día está abajo.</p>' : '<div class="empty"><strong>Sin series este día.</strong>El calendario se llena con cada día de actividad.</div>'}${skillsUI.daySection(historyDay)}</div>`;
+    )}</div><p class="note streak-explainer">Las rachas de Push, Pull y Legs cuentan días cumpliendo su meta. Los descansos con meta 0 conservan esa racha sin sumar días. Hoy tienes hasta medianoche para continuar.</p>${calendar()}<div class="section-heading"><h2>Detalle del día</h2></div><div class="history-date"><input aria-label="Día del historial" type="date" id="history-date" max="${activeDay}" value="${historyDay}"><span class="quiet">${d.entries.length + skillEntriesOn(state, historyDay).length} series</span></div><div class="history-stats">${groups.map((g) => `<div class="stat"><small>${labels[g]}</small><strong>${dayTotals(state, historyDay, g).count}</strong> <span>/ ${d.goals[g]}${g === "legs" ? " por lado" : ""}</span></div>`).join("")}</div><p class="quiet">${esc(dateLabel(historyDay))}</p>${d.entries.length ? entries(d.entries, historyDay) : skillEntriesOn(state, historyDay).length ? '<p class="note">Tu práctica de calistenia de este día está abajo.</p>' : '<div class="empty"><strong>Sin series este día.</strong>El calendario se llena con cada día de actividad.</div>'}${skillsUI.daySection(historyDay)}</div>`;
 }
 function calendar() {
   const first = new Date(calendarMonth + "-01T12:00:00"),
@@ -197,15 +202,14 @@ function calendar() {
     const key = calendarMonth + "-" + String(day).padStart(2, "0"),
       d = state.days[key],
       active = hasActivity(state, key);
-    const completed = d
-      ? groups.filter(
-          (g) => d.goals[g] > 0 && totals(d.entries, g).count >= d.goals[g],
-        ).length
-      : 0;
+    const goals = d?.goals ?? goalsForDate(state, key);
+    const completed = groups.filter(
+      (g) => goals[g] > 0 && dayTotals(state, key, g).count >= goals[g],
+    ).length;
     const dots = groups
       .map((g) => {
-        const goal = d?.goals[g],
-          n = d ? totals(d.entries, g).count : 0;
+        const goal = goals[g],
+          n = dayTotals(state, key, g).count;
         return `<i class="${goal > 0 && n >= goal ? "met" : n > 0 ? "partial" : ""} ${g}"></i>`;
       })
       .join("");
@@ -229,7 +233,7 @@ function add(g, reps, preset = null) {
   const previousRecords = personalRecords(state, activeDay);
   const d = current(),
     p = preset ?? state.selected[g],
-    before = totals(d.entries, g).count,
+    before = dayTotals(state, activeDay, g).count,
     id = crypto.randomUUID(),
     key = activeDay;
   const entry = { id, group: g, ...p, reps, at: Date.now() };
@@ -242,7 +246,7 @@ function add(g, reps, preset = null) {
   const complete =
     d.goals[g] > 0 &&
     before < d.goals[g] &&
-    totals(d.entries, g).count >= d.goals[g];
+    dayTotals(state, activeDay, g).count >= d.goals[g];
   const oldRecord = previousRecords.find(
     (r) =>
       r.group === g &&
@@ -510,7 +514,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v6");
+    const cache = await caches.open("ahorita-v7");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -556,7 +560,7 @@ function progress() {
     })
     .join(
       "",
-    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section>${summary.skills.series ? `<div class="skill-week-summary"><strong>Calistenia esta semana</strong><span>${summary.skills.series} series · ${summary.skills.seconds} s de holds · ${summary.skills.reps} reps</span><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>` : ""}<p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras muestran reps; Legs cuenta por lado. Toca un día para ver el detalle.</p><section class="records-section"><div class="section-heading"><h2>Récords personales</h2><button class="text-button" data-action="skill-open-records">Todas mis marcas ↗</button></div><div class="record-filters" aria-label="Filtrar récords"><button data-action="record-filter" data-group="all" aria-pressed="${recordGroup === "all"}">Todos</button>${groups.map((g) => `<button data-action="record-filter" data-group="${g}" aria-pressed="${recordGroup === g}">${labels[g]}</button>`).join("")}</div><p class="note">Comparamos el mismo ejercicio, peso y lado. Si corriges una serie, el récord se recalcula.</p>${records.length ? `<div class="entries">${records.map((r) => `<button class="record-row" data-action="week-day" data-day="${r.day}"><span class="badge ${r.group}">${icons[r.group]}</span><span class="entry-info"><strong>${esc(r.exercise)}</strong><small>${weightLabel(r.weight)}${r.group === "legs" ? " · " + sideLabel(r.side) : ""}<br>${short(r.day)} ${r.day.slice(0, 4)}</small></span><span class="record-reps">${r.reps}<small>reps ↗</small></span></button>`).join("")}</div>` : '<div class="empty"><strong>Aquí empieza tu próxima marca.</strong>Registra una serie para crear tu primer récord.</div>'}</section></div>`;
+    )}</div><section class="week-chart" aria-label="Repeticiones por día y grupo"><div class="chart-columns">${summary.days.map((d) => `<button class="chart-day ${d.future ? "future" : ""}" data-action="week-day" data-day="${d.key}" ${d.future ? "disabled" : ""} aria-label="${esc(dateLabel(d.key))}: Push ${d.counts.push}, Pull ${d.counts.pull}, Legs ${d.counts.legs} por lado"><span class="chart-bars">${groups.map((g) => `<i class="${g}" style="height:${Math.max(2, (d.counts[g] / max) * 100)}%"></i>`).join("")}</span><span>${new Date(d.key + "T12:00:00").toLocaleDateString("es-GT", { weekday: "narrow" })}</span><small>${Number(d.key.slice(-2))}</small></button>`).join("")}</div><div class="chart-legend">${groups.map((g) => `<span><i class="${g}"></i>${labels[g]}</span>`).join("")}</div></section>${summary.skills.series ? `<div class="skill-week-summary"><strong>Calistenia esta semana</strong><span>${summary.skills.series} series · ${summary.skills.seconds} s de holds · ${summary.skills.reps} reps</span><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>` : ""}<p class="note">${summary.elapsed < 7 ? `Comparación de los primeros ${summary.elapsed} días de cada semana.` : "Comparación con la semana completa anterior."} Las barras incluyen las reps de calistenia asignadas a cada grupo; Legs cuenta por lado. Toca un día para ver el detalle.</p><section class="records-section"><div class="section-heading"><h2>Récords personales</h2><button class="text-button" data-action="skill-open-records">Todas mis marcas ↗</button></div><div class="record-filters" aria-label="Filtrar récords"><button data-action="record-filter" data-group="all" aria-pressed="${recordGroup === "all"}">Todos</button>${groups.map((g) => `<button data-action="record-filter" data-group="${g}" aria-pressed="${recordGroup === g}">${labels[g]}</button>`).join("")}</div><p class="note">Comparamos el mismo ejercicio, peso y lado. Si corriges una serie, el récord se recalcula.</p>${records.length ? `<div class="entries">${records.map((r) => `<button class="record-row" data-action="week-day" data-day="${r.day}"><span class="badge ${r.group}">${icons[r.group]}</span><span class="entry-info"><strong>${esc(r.exercise)}</strong><small>${weightLabel(r.weight)}${r.group === "legs" ? " · " + sideLabel(r.side) : ""}<br>${short(r.day)} ${r.day.slice(0, 4)}</small></span><span class="record-reps">${r.reps}<small>reps ↗</small></span></button>`).join("")}</div>` : '<div class="empty"><strong>Aquí empieza tu próxima marca.</strong>Registra una serie para crear tu primer récord.</div>'}</section></div>`;
 }
 function settings() {
   const plan = weekPlan(state, activeDay),
@@ -569,7 +573,7 @@ function settings() {
       "Sábado",
       "Domingo",
     ];
-  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div><p>Ejercicio, libras y reps juntos. Tócalas en Hoy para registrar una serie.</p>${state.favorites.length ? state.favorites.map((f) => `<div class="favorite-manage"><div><strong>${esc(f.exercise)} · ${f.reps} reps</strong><small>${labels[f.group]} · ${weightLabel(f.weight)}${f.group === "legs" ? " · " + sideLabel(f.side) : ""}</small></div><button class="text-button" data-action="favorite-edit" data-id="${esc(f.id)}" aria-label="Editar favorita ${esc(f.exercise)}">Editar</button></div>`).join("") : '<p class="note">Aún no tienes favoritas. Crea tu primera serie.</p>'}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar copia</button></div><input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
+  return `${intro("A tu manera.", "Todo listo para seguir sumando.", "AJUSTES")}<div class="panel"><section class="settings-block"><h2>Tus metas diarias</h2><p>Objetivo de cada grupo en sus días de entrenamiento. Usa 0 para descansar.</p><form id="goals-form"><div class="row">${groups.map((g) => `<label class="field">${labels[g]}${g === "legs" ? " / lado" : ""}<input name="${g}" type="number" inputmode="numeric" min="0" max="10000" step="1" required value="${state.goals[g]}"></label>`).join("")}</div><button class="primary">Guardar metas</button></form></section><section class="settings-block"><h2>Tu semana de entrenamiento</h2><p>Marca los grupos que quieres trabajar cada día. Los demás descansan. El cambio se aplica desde hoy y conserva tus días anteriores.</p><form id="schedule-form"><div class="schedule-table"><div class="schedule-head"><span>Día</span>${groups.map((g) => `<span>${labels[g]}</span>`).join("")}</div>${weekdays.map((name, i) => `<div class="schedule-row"><span>${name}</span>${groups.map((g) => `<label><input type="checkbox" name="${i}-${g}" ${plan[i][g] ? "checked" : ""} aria-label="${name} ${labels[g]}"><span class="sr-only">${name} ${labels[g]}</span></label>`).join("")}</div>`).join("")}</div><button class="primary">Guardar calendario</button></form></section><section class="settings-block"><div class="mini-heading"><h2>Series favoritas</h2><button class="text-button" data-action="favorite-new">Crear ↗</button></div><p>Ejercicio, libras y reps juntos. Tócalas en Hoy para registrar una serie.</p>${state.favorites.length ? state.favorites.map((f) => `<div class="favorite-manage"><div><strong>${esc(f.exercise)} · ${f.reps} reps</strong><small>${labels[f.group]} · ${weightLabel(f.weight)}${f.group === "legs" ? " · " + sideLabel(f.side) : ""}</small></div><button class="text-button" data-action="favorite-edit" data-id="${esc(f.id)}" aria-label="Editar favorita ${esc(f.exercise)}">Editar</button></div>`).join("") : '<p class="note">Aún no tienes favoritas. Crea tu primera serie.</p>'}</section><section class="settings-block"><h2>Tus botones rápidos</h2><form id="quick-form"><div class="row">${state.quick.map((n, i) => `<label class="field">Botón ${i + 1}<input name="q${i}" type="number" inputmode="numeric" min="1" max="999" step="1" required value="${n}"></label>`).join("")}</div><button class="secondary">Guardar botones</button></form></section><section class="settings-block"><h2>Descanso entre series</h2><p>Inicia 60 s, 90 s o 2 min desde Hoy. Puedes pausarlo y seguir usando la app. Si bloqueas el iPhone, al volver verás cuánto queda; el aviso sonoro requiere tener la app abierta.</p><label class="check-label"><input id="timer-sound" type="checkbox" ${state.preferences.timerSound ? "checked" : ""}> Sonido al terminar, con la app abierta</label></section><section class="settings-block"><h2>Tus datos se quedan contigo</h2><p>Guarda una copia en Archivos o iCloud Drive antes de reinstalar, cambiar de teléfono o borrar datos del sitio. La app no sincroniza automáticamente.</p><div class="row"><button class="secondary" data-action="export">Exportar copia</button><button class="secondary" data-action="import">Importar copia</button></div><input type="file" id="import-file" accept=".json,application/json" hidden><label class="check-label"><input id="backup-reminders" type="checkbox" ${state.backup.enabled ? "checked" : ""}> Recordarme hacer una copia</label><p class="note">${state.backup.lastExportAt ? "Última exportación preparada: " + esc(new Date(state.backup.lastExportAt).toLocaleDateString("es-GT")) + "." : "Aún no has preparado una copia."} El recordatorio aparece dentro de la app después de 3 días activos; luego, si hay datos nuevos, cada 7 días.</p></section><section class="settings-block"><h2>En tu pantalla de inicio</h2><p>Safari → Compartir → Agregar a pantalla de inicio. Para actualizar, conserva el icono: cierra y vuelve a abrir con internet. Eliminar y reinstalar puede borrar tus registros. Safari y el icono pueden tener historiales separados.</p><p id="offline-info">Preparando disponibilidad sin conexión…</p><button class="secondary" data-action="offline">Revisar modo sin conexión</button></section><section class="settings-block"><h2>Cómo contamos</h2><p>Las series de calistenia en repeticiones pueden sumar a Push, Pull o Legs con «Sumar al objetivo diario». Los holds en segundos se registran aparte. Las series anteriores a esta función conservan su contador; puedes editar una y asignarle un grupo.</p><p>Push y Pull suman reps de sus ejercicios, con cualquier peso. Las lb son el peso añadido total: dos mancuernas de 15 lb = +30 lb.</p><p>Legs lleva un contador por pierna. «Ambas» registra reps para cada lado. Si registras por separado, la meta usa el lado con menos reps.</p><p>La racha general requiere alguna serie cada día. Las de cada grupo requieren cumplir su meta; un descanso del calendario o meta 0 conserva esa racha sin sumar días. Hoy sigue abierto hasta medianoche.</p></section><section class="settings-block"><h2>Tu app, independiente</h2><p>Reps se aloja en tu GitHub Pages. No requiere ChatGPT para funcionar. El código y el alojamiento están en tu cuenta de GitHub; el historial está en este dispositivo.</p><a class="secondary inline-link" href="https://github.com/tefomars/ahorita-reps" target="_blank" rel="noopener">Ver código y guía ↗</a></section><p class="note">Reps · Hecha para ir sumando.<br>Sin suscripciones, anuncios ni rastreadores.</p></div>`;
 }
 function favoriteForm(f = null) {
   const g = f?.group ?? "push";

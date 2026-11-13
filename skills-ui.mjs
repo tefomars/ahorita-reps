@@ -13,13 +13,21 @@ import {
   skillTotals,
   skillRecordKey,
   allTimeRecords,
+  suggestedCounterGroup,
+  skillCounterGroup,
+  counterDefaults,
+  inferCounterSide,
 } from "./skills-core.mjs";
 export function createSkillsUI(ctx) {
   const { esc, save, toast, render, openSheet, dateLabel } = ctx;
   const state = () => ctx.getState(),
     today = () => ctx.getToday();
   let tab = "log",
-    draft = { ...state().skills.selected, day: today(), value: "" },
+    draft = {
+      ...counterDefaults(state().skills.selected),
+      day: today(),
+      value: "",
+    },
     lastToday = today(),
     historyDay = today(),
     historyFamily = "all",
@@ -67,6 +75,46 @@ export function createSkillsUI(ctx) {
     const custom = force || !list.includes(value);
     return `<label class="field">${label}<select name="${name}">${options(list, custom ? "" : value)}<option value="__custom" ${custom ? "selected" : ""}>Otro / personalizado…</option></select></label><label class="field" data-skill-custom="${name}" ${custom ? "" : "hidden"}>Nombre${name === "variation" ? " de la variante" : name === "apparatus" ? " del equipo" : " del ejercicio"}<input name="custom${name[0].toUpperCase() + name.slice(1)}" maxlength="80" value="${custom ? esc(value) : ""}" ${custom ? "required" : ""} placeholder="${name === "movement" ? "Ej. Handstand hold" : name === "variation" ? "Ej. Half lay" : "Ej. Barras bajas"}"></label>`;
   }
+  function counterLabel(e) {
+    const group = skillCounterGroup(e);
+    if (!group)
+      return e.metric === "seconds"
+        ? "Hold en segundos · sin sumar reps"
+        : "Sin contador diario";
+    return (
+      "Suma a " +
+      { push: "Push", pull: "Pull", legs: "Legs" }[group] +
+      (group === "legs"
+        ? " · " +
+          { left: "izquierda", right: "derecha", both: "por pierna" }[
+            e.counterSide ?? inferCounterSide(e)
+          ]
+        : "")
+    );
+  }
+  function counterFields(d) {
+    if (d.metric === "seconds")
+      return '<p class="skill-counter-note">Los holds se guardan en segundos, separados del contador de reps.</p>';
+    const group = Object.hasOwn(d, "counterGroup")
+        ? d.counterGroup
+        : suggestedCounterGroup(d),
+      side = d.counterSide ?? inferCounterSide(d);
+    return `<div class="skill-counter-fields"><label class="field">Sumar al objetivo diario<select name="counterGroup"><option value="" ${!group ? "selected" : ""}>Sin contador</option><option value="push" ${group === "push" ? "selected" : ""}>Push</option><option value="pull" ${group === "pull" ? "selected" : ""}>Pull</option><option value="legs" ${group === "legs" ? "selected" : ""}>Legs</option></select></label><label class="field" data-counter-side ${group === "legs" ? "" : "hidden"}>Lado que suma<select name="counterSide"><option value="both" ${side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${side === "right" ? "selected" : ""}>Solo derecha</option></select></label></div>`;
+  }
+  function updateCounterFields(form) {
+    const group = form.elements.counterGroup?.value,
+      side = form.elements.counterSide?.value;
+    const wrap = form.querySelector("[data-counter-side]");
+    if (wrap) wrap.hidden = group !== "legs";
+    const label = form.querySelector("[data-skill-value-label]");
+    if (label)
+      label.textContent =
+        form.elements.metric.value === "seconds"
+          ? "Segundos de esta serie"
+          : group === "legs" && side === "both"
+            ? "Reps por pierna"
+            : "Reps de esta serie";
+  }
   function formFields(d) {
     const c = skillCatalog[d.family],
       spec = c.movements.find((x) => x.name === d.movement),
@@ -85,7 +133,7 @@ export function createSkillsUI(ctx) {
         ? ""
         : d.movement,
       custom,
-    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value">${d.metric === "seconds" ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" required value="${d.value ?? ""}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas opcionales</summary><label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
+    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" required value="${d.value ?? ""}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div>${counterFields(d)}<details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas opcionales</summary><label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
   }
   function readForm(form) {
     const f = new FormData(form),
@@ -107,6 +155,17 @@ export function createSkillsUI(ctx) {
       variation: read("variation"),
       apparatus: read("apparatus"),
       metric: spec?.metric ?? form.elements.metric.value,
+      counterGroup:
+        (spec?.metric ?? form.elements.metric.value) === "seconds"
+          ? null
+          : String(f.get("counterGroup") ?? "") || null,
+      counterSide:
+        f.get("counterGroup") === "legs"
+          ? String(
+              f.get("counterSide") ??
+                inferCounterSide({ variation: read("variation") }),
+            )
+          : "both",
       support: String(f.get("support")),
       supportNote:
         f.get("support") === "Libre"
@@ -128,7 +187,7 @@ export function createSkillsUI(ctx) {
           .sort((a, b) => b.at - a.at)
           .map(
             (e) =>
-              `<article class="skill-entry"><div class="skill-entry-top"><span class="skill-family-label">${skillCatalog[e.family].name}</span><strong>${amount(e)}</strong></div><h3>${esc(e.movement)} · ${esc(e.variation)}</h3><p>${esc(e.apparatus)} · ${load(e.weight)}<br>${esc(e.support === "Libre" ? "Libre" : `${e.support}: ${e.supportNote}`)}</p>${e.notes ? `<p class="skill-entry-note">${esc(e.notes)}</p>` : ""}<div class="skill-entry-actions"><small>${new Date(e.at).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}</small><button type="button" class="text-button" data-action="skill-repeat" data-id="${esc(e.id)}" aria-label="Repetir hoy ${esc(e.movement)} ${esc(e.variation)}">Repetir hoy</button><button type="button" class="text-button" data-action="skill-edit" data-id="${esc(e.id)}" aria-label="Editar ${esc(e.movement)} ${esc(e.variation)}">Editar</button></div></article>`,
+              `<article class="skill-entry"><div class="skill-entry-top"><span class="skill-family-label">${skillCatalog[e.family].name}</span><strong>${amount(e)}</strong></div><h3>${esc(e.movement)} · ${esc(e.variation)}</h3><p>${esc(e.apparatus)} · ${load(e.weight)}<br>${esc(e.support === "Libre" ? "Libre" : `${e.support}: ${e.supportNote}`)}</p><span class="skill-counter-badge">${counterLabel(e)}</span>${e.notes ? `<p class="skill-entry-note">${esc(e.notes)}</p>` : ""}<div class="skill-entry-actions"><small>${new Date(e.at).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}</small><button type="button" class="text-button" data-action="skill-repeat" data-id="${esc(e.id)}" aria-label="Repetir hoy ${esc(e.movement)} ${esc(e.variation)}">Repetir hoy</button><button type="button" class="text-button" data-action="skill-edit" data-id="${esc(e.id)}" aria-label="Editar ${esc(e.movement)} ${esc(e.variation)}">Editar</button></div></article>`,
           )
           .join("")}</div>`
       : '<div class="empty"><strong>Aún no hay series de calistenia este día.</strong>Cada hold y cada rep quedan aquí.</div>';
@@ -213,6 +272,7 @@ export function createSkillsUI(ctx) {
     const previous = allTimeRecords(state(), today()).find(
       (r) => r.key === skillRecordKey({ ...entry, source: "skill" }),
     );
+    if (skillCounterGroup(entry)) ctx.ensureCounterDay?.(entry.day);
     if (editingId) {
       const index = state().skills.entries.findIndex((e) => e.id === editingId);
       if (index < 0) throw Error("La serie ya no está disponible.");
@@ -253,7 +313,7 @@ export function createSkillsUI(ctx) {
   function editEntry(entry) {
     openSheet(
       "Editar serie de calistenia",
-      `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields(entry)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
+      `<form id="skill-edit-form" data-id="${esc(entry.id)}">${formFields({ ...entry, counterGroup: skillCounterGroup(entry), counterSide: entry.counterSide ?? inferCounterSide(entry) })}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(entry.id)}">Eliminar</button><button class="primary" type="submit">Guardar cambios</button></div></form>`,
     );
   }
   let libraryQuery = "",
@@ -322,7 +382,12 @@ export function createSkillsUI(ctx) {
     document.querySelector("[name=skill-library-query]").focus();
   }
   function chooseLibrary(config) {
-    draft = { ...config, day: draft.day || today(), value: "", notes: "" };
+    draft = {
+      ...counterDefaults(config),
+      day: draft.day || today(),
+      value: "",
+      notes: "",
+    };
     document.querySelector("#sheet").close();
     render();
     document
@@ -383,6 +448,8 @@ export function createSkillsUI(ctx) {
           variation: r.variation,
           metric: r.metric,
           apparatus: r.apparatus,
+          counterGroup: suggestedCounterGroup(r),
+          counterSide: inferCounterSide(r),
         });
     }
     if (a === "skill-library-recent") {
@@ -413,7 +480,7 @@ export function createSkillsUI(ctx) {
       const entry = state().skills.entries.find((e) => e.id === b.dataset.id);
       if (entry)
         try {
-          saveEntry({ ...entry, day: today() });
+          saveEntry({ ...counterDefaults(entry), day: today() });
         } catch (err) {
           toast(err.message);
         }
@@ -462,6 +529,17 @@ export function createSkillsUI(ctx) {
         wrap.hidden = !custom;
         wrap.querySelector("input").required = custom;
       }
+      if (name === "counterGroup" || name === "counterSide")
+        updateCounterFields(form);
+      if (
+        name === "variation" &&
+        form.elements.counterGroup?.value === "legs"
+      ) {
+        form.elements.counterSide.value = inferCounterSide({
+          variation: readForm(form).variation,
+        });
+        updateCounterFields(form);
+      }
       if (name === "support") {
         const assisted = e.target.value !== "Libre",
           wrap = form.querySelector("[data-skill-support]");
@@ -491,8 +569,13 @@ export function createSkillsUI(ctx) {
           if (name === "movement" && e.target.value === "__custom")
             d.movement = "";
           if (d.metric !== previousMetric) d.value = "";
-        } else if (name === "metric") d.value = "";
-        else if (name === "day") d.day = d.day || today();
+          d.counterGroup = suggestedCounterGroup(d);
+          d.counterSide = inferCounterSide(d);
+        } else if (name === "metric") {
+          d.value = "";
+          d.counterGroup = suggestedCounterGroup(d);
+          d.counterSide = inferCounterSide(d);
+        } else if (name === "day") d.day = d.day || today();
         if (form.id === "skill-edit-form") {
           form.innerHTML = `${formFields(d)}<div class="sheet-actions"><button class="secondary danger" type="button" data-action="skill-delete" data-id="${esc(form.dataset.id)}">Eliminar</button><button class="primary">Guardar cambios</button></div>`;
         } else {
@@ -552,14 +635,20 @@ export function createSkillsUI(ctx) {
   document.addEventListener("submit", handleSubmit);
   return {
     page,
-    daySection(day) {
-      const list = skillEntriesOn(state(), day);
+    daySection(day, { counterOnly = false } = {}) {
+      const list = skillEntriesOn(state(), day).filter(
+        (e) => !counterOnly || skillCounterGroup(e),
+      );
       return list.length
-        ? `<div class="section-heading"><h2>Calistenia</h2><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>${dailyStats(list)}${rows(list)}`
+        ? `<div class="section-heading"><h2>${counterOnly ? "Calistenia que suma" : "Calistenia"}</h2><button class="text-button" data-action="skill-open-records">Mis marcas ↗</button></div>${counterOnly ? "" : dailyStats(list)}${rows(list)}`
         : "";
     },
     reset() {
-      draft = { ...state().skills.selected, day: today(), value: "" };
+      draft = {
+        ...counterDefaults(state().skills.selected),
+        day: today(),
+        value: "",
+      };
       historyDay = today();
       lastToday = today();
       recordSearch = "";

@@ -2344,3 +2344,55 @@ dialog:has([name="skill-library-query"]) {
   height: min(85dvh, 750px);
   max-width: 480px;
 }
+.skill-counter-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  background: #eef3e7;
+  border: 1px solid #d7e2cc;
+  border-radius: 11px;
+  padding: 12px 13px;
+  margin: 18px 0 6px;
+}
+.skill-counter-fields:has([data-counter-side]:not([hidden])) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.skill-counter-fields .field {
+  margin: 0;
+  font-size: 11px;
+}
+.skill-counter-fields select {
+  height: 44px;
+  min-height: 44px;
+  background-position:
+    calc(100% - 16px) 20px,
+    calc(100% - 12px) 20px;
+  font-size: 14px;
+}
+.skill-counter-note {
+  font-size: 10px;
+  color: #7d8674;
+  margin: 15px 0 3px;
+  line-height: 1.6;
+}
+.skill-counter-badge {
+  display: inline-block;
+  background: #edf1e5;
+  color: #667a55;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  margin: 4px 0 2px;
+}
+@media (max-width: 759px) {
+  .skill-counter-fields {
+    padding: 11px 10px;
+    gap: 9px;
+  }
+  .skill-counter-fields .field {
+    font-size: 10px;
+  }
+  .skill-counter-fields select {
+    font-size: 14px;
+  }
+}

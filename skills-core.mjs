@@ -1,5 +1,5 @@
-import { extraSkills } from "./exercise-library.mjs";
-// Skill records stay separate from Push/Pull/Legs repetition goals.
+import { extraSkills, infoFor } from "./exercise-library.mjs";
+// Repetition sets can contribute to a daily goal without duplicating their source record.
 export const skillCatalog = {
   front: {
     name: "Front lever",
@@ -86,7 +86,7 @@ export const skillSupports = [
 ];
 export function defaultSkill(family = "front") {
   const c = skillCatalog[family] ?? skillCatalog.front;
-  return {
+  return counterDefaults({
     family: skillCatalog[family] ? family : "front",
     movement: c.movements[0].name,
     variation: c.variations[0],
@@ -96,7 +96,70 @@ export function defaultSkill(family = "front") {
     supportNote: "",
     weight: 0,
     notes: "",
+  });
+}
+export function suggestedCounterGroup(e) {
+  if (e.metric !== "reps") return null;
+  if (["front", "back", "muscle"].includes(e.family)) return "pull";
+  if (e.family === "planche") return "push";
+  if (e.family === "handstand")
+    return e.movement === "Handstand walking" ? null : "push";
+  const category = infoFor(skillCatalog, e.family).category;
+  return { push: "push", pull: "pull", legs: "legs" }[category] ?? null;
+}
+export function inferCounterSide(e) {
+  const v = norm(e.variation ?? "");
+  return /izquierda|izquierdo|left/.test(v)
+    ? "left"
+    : /derecha|derecho|right/.test(v)
+      ? "right"
+      : "both";
+}
+export function skillCounterGroup(e) {
+  return e.metric === "reps" &&
+    ["push", "pull", "legs"].includes(e.counterGroup)
+    ? e.counterGroup
+    : null;
+}
+export function counterDefaults(e) {
+  return {
+    ...e,
+    counterGroup:
+      e.metric === "seconds"
+        ? null
+        : Object.hasOwn(e, "counterGroup")
+          ? e.counterGroup
+          : suggestedCounterGroup(e),
+    counterSide: e.counterSide ?? inferCounterSide(e),
   };
+}
+export function skillContributions(s, key) {
+  return skillEntriesOn(s, key).flatMap((e) => {
+    const group = skillCounterGroup(e);
+    return group
+      ? [
+          {
+            id: "skill:" + e.id,
+            source: "skill",
+            skillId: e.id,
+            group,
+            exercise:
+              skillCatalog[e.family].name +
+              " · " +
+              e.movement +
+              " · " +
+              e.variation,
+            reps: e.value,
+            weight: e.weight,
+            side:
+              group === "legs"
+                ? (e.counterSide ?? inferCounterSide(e))
+                : "both",
+            at: e.at,
+          },
+        ]
+      : [];
+  });
 }
 export function defaultSkillStore() {
   return { entries: [], selected: defaultSkill() };
@@ -116,6 +179,14 @@ export function validSkillConfig(e) {
   return !!(
     e &&
     Object.hasOwn(skillCatalog, e.family) &&
+    (e.counterGroup === undefined ||
+      e.counterGroup === null ||
+      ["push", "pull", "legs"].includes(e.counterGroup)) &&
+    (e.metric !== "seconds" ||
+      e.counterGroup === undefined ||
+      e.counterGroup === null) &&
+    (e.counterSide === undefined ||
+      ["both", "left", "right"].includes(e.counterSide)) &&
     short(e.movement) &&
     short(e.variation) &&
     ["seconds", "reps"].includes(e.metric) &&

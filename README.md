@@ -52,9 +52,21 @@ Elige Front lever, Back lever, Planche, Muscle-ups u Otro ejercicio. Cada serie 
 
 Las variantes incluyen tuck, advanced tuck, one leg de cada lado, straddle, half lay y full, según el movimiento. «Otro / personalizado» permite usar tus propios nombres. Los ejercicios propios admiten segundos o reps.
 
-En **Equipo, lastre y fecha** puedes indicar barra, anillas, suelo o paralelas, libras añadidas, asistencia y fecha. Si usas una banda u otra ayuda, escribe un detalle consistente, como «verde»: las marcas de esa asistencia se guardan por separado. No se convierten segundos en reps ni se suman estas series a las metas de Push/Pull/Legs.
+En **Equipo, lastre y fecha** puedes indicar barra, anillas, suelo o paralelas, libras añadidas, asistencia y fecha. Si usas una banda u otra ayuda, escribe un detalle consistente, como «verde»: las marcas de esa asistencia se guardan por separado. Los holds en segundos no se convierten en reps. Las series de repeticiones pueden alimentar un contador diario con «Sumar al objetivo diario».
 
 Registra una serie cada vez que la completes. La app recuerda la configuración. «Repetir hoy» copia una serie anterior al día actual. Historial permite revisar días y editar o eliminar registros. Se pueden registrar días anteriores; los registros nuevos no admiten fechas futuras.
+
+### Sumar las reps de calistenia al objetivo diario
+
+Al registrar una serie en repeticiones, **Sumar al objetivo diario** permite elegir Push, Pull, Legs o Sin contador. Las nuevas series proponen un grupo según el ejercicio: front/back lever raises, muscle-ups, dominadas y remos a Pull; planche pushups, flexiones y fondos a Push; ejercicios de piernas a Legs. Core, movilidad y ejercicios propios pueden dejarse sin contador o asignarse manualmente. Los pasos de handstand walking no se asignan por defecto.
+
+**Ejemplo:** 2 pullups en Hoy + 8 front lever raises en Calistenia asignados a Pull = 10 reps de Pull. Un hold de 20 s no cambia esas 10 reps. Las reps con y sin lastre suman una a una.
+
+Para Legs, elige ambas piernas, solo izquierda o solo derecha. «Ambas» registra la cantidad por pierna. Se propone el lado de la variante seleccionada cuando su nombre indica izquierda/derecha.
+
+La serie se guarda solamente en Calistenia; el contador calcula su contribución desde ese registro. No hace falta volver a sumarla en Hoy. Cambiar las reps o el grupo, borrar o deshacer la serie actualiza las metas, el historial, las rachas y el resumen semanal. Hoy muestra las series enlazadas en «Calistenia que suma».
+
+**Las series anteriores a esta función conservan su configuración y no se agregan automáticamente al contador.** Para incluir una, edítala y elige su grupo. Esto evita volver a sumar reps antiguas que quizá ya anotaste manualmente en Hoy. Los holds en segundos permanecen siempre fuera de los contadores de reps.
 
 ### Marcas, sin registrarlas a mano
 
@@ -68,7 +80,7 @@ Tuck y full, holds y raises, barra y anillas, libre y asistido tienen marcas sep
 
 Este menú también incluye los máximos de tus ejercicios de **Push/Pull/Legs**, tanto reps como lastre. Los filtros permiten ver una progresión o los ejercicios de los contadores generales. Toca la fecha de una marca para ver las series de ese día.
 
-La práctica de calistenia también cuenta como actividad en el calendario y en la racha general. Progreso incluye sus series, segundos y reps en un resumen semanal separado; las metas y barras de Push/Pull/Legs mantienen sus propias reps.
+La práctica de calistenia también cuenta como actividad en el calendario y en la racha general. Progreso incluye sus series, segundos y reps en un resumen semanal. Las repeticiones asignadas a Push/Pull/Legs también aparecen en sus metas, barras y rachas. Cada serie se cuenta una sola vez en el total de series.
 
 ## Calendario de entrenamiento
 

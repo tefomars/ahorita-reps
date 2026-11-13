@@ -3,6 +3,7 @@ import {
   validateSkillStore,
   skillEntriesOn,
   skillTotals,
+  skillContributions,
 } from "./skills-core.mjs";
 export const groups = ["push", "pull", "legs"];
 export const exercises = {
@@ -58,6 +59,12 @@ export function totals(entries, g) {
   const left = list.reduce((n, e) => n + (e.side !== "right" ? e.reps : 0), 0),
     right = list.reduce((n, e) => n + (e.side !== "left" ? e.reps : 0), 0);
   return { count: Math.min(left, right), left, right };
+}
+export function counterEntries(s, key) {
+  return [...(s.days[key]?.entries ?? []), ...skillContributions(s, key)];
+}
+export function dayTotals(s, key, g) {
+  return totals(counterEntries(s, key), g);
 }
 export function validateEntry(e) {
   return (
@@ -234,7 +241,7 @@ export function streakStats(s, today, group = null) {
     const d = s.days[key],
       goal = d?.goals[group] ?? (group ? goalsForDate(s, key)[group] : 0);
     const qualifies = group
-      ? goal > 0 && totals(d?.entries ?? [], group).count >= goal
+      ? goal > 0 && dayTotals(s, key, group).count >= goal
       : hasActivity(s, key);
     const rest =
       group &&
@@ -256,19 +263,21 @@ export function weeklySummary(s, start, today) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const key = shiftDay(start, i),
       d = s.days[key],
+      goals = d?.goals ?? goalsForDate(s, key),
       entries = key <= today ? (d?.entries ?? []) : [];
     return {
       key,
       future: key > today,
       active: !(key > today) && hasActivity(s, key),
-      series: entries.length + skillEntriesOn(s, key).length,
+      series:
+        entries.length + (key <= today ? skillEntriesOn(s, key).length : 0),
       counts: Object.fromEntries(
-        groups.map((g) => [g, totals(entries, g).count]),
+        groups.map((g) => [g, key <= today ? dayTotals(s, key, g).count : 0]),
       ),
       met: groups.filter(
         (g) =>
-          d?.goals[g] > 0 &&
-          totals(entries, g).count >= d.goals[g] &&
+          goals[g] > 0 &&
+          dayTotals(s, key, g).count >= goals[g] &&
           key <= today,
       ).length,
     };
@@ -280,7 +289,7 @@ export function weeklySummary(s, start, today) {
       g,
       Array.from(
         { length: elapsed },
-        (_, i) => totals(s.days[shiftDay(previous, i)]?.entries ?? [], g).count,
+        (_, i) => dayTotals(s, shiftDay(previous, i), g).count,
       ).reduce((a, b) => a + b, 0),
     ]),
   );
