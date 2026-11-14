@@ -1,3 +1,4 @@
+import { createWeightUI, rememberWeights } from "./weight-shortcuts.mjs";
 import { matchesSkillSearch } from "./exercise-library.mjs";
 import { createTrainingUI } from "./training-ui.mjs";
 import {
@@ -77,6 +78,16 @@ let progressWeek = startOfWeek(activeDay),
   recordGroup = "all",
   progressTab = "summary",
   detailOpen = false;
+const weightUI = createWeightUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  esc,
+  setShortcutWeight: (key, value) => {
+    rollover();
+    const f = universalFavorites(state).find((x) => x.key === key);
+    if (f) setShortcutWeight(f, value, false);
+  },
+});
 const skillsUI = createSkillsUI({
   getState: () => state,
   getToday: () => activeDay,
@@ -89,6 +100,7 @@ const skillsUI = createSkillsUI({
   beforeMutation: rollover,
   openProgress,
   openExercise,
+  weightButtons: (config, weight) => weightUI.buttons(config, weight),
   trainingPage: (tab) => trainingUI.page(tab),
   decorateSkill: (e, meta) => trainingUI.decorate(e, "skill", meta),
   ensureCounterDay: (key) => ensureDay(state, key),
@@ -319,7 +331,7 @@ function openSheet(title, body) {
 function configForm(g, edit) {
   const p = edit ?? state.selected[g],
     opts = [...new Set([...exercises[g], p.exercise])];
-  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label><p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}<details class="skill-equipment"><summary>Equipo y variante para Progreso</summary><label class="field">Equipo<input name="apparatus" maxlength="80" value="${esc(p.apparatus ?? "")}" placeholder="Ej. Barra, Anillas, Suelo"></label><label class="field">Variante<input name="variation" maxlength="80" value="${esc(p.variation ?? "")}" placeholder="Vacío = estándar o lado elegido"></label><p class="note">Usa el mismo nombre de equipo y variante en Entrenar para unir sus marcas.</p></details>`;
+  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label>${weightUI.buttons(shortcutConfig({ kind: "base", item: { ...p, group: g } }), p.weight)}<p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}<details class="skill-equipment"><summary>Equipo y variante para Progreso</summary><label class="field">Equipo<input name="apparatus" maxlength="80" value="${esc(p.apparatus ?? "")}" placeholder="Ej. Barra, Anillas, Suelo"></label><label class="field">Variante<input name="variation" maxlength="80" value="${esc(p.variation ?? "")}" placeholder="Vacío = estándar o lado elegido"></label><p class="note">Usa el mismo nombre de equipo y variante en Entrenar para unir sus marcas.</p></details>`;
 }
 function add(g, reps, preset = null, meta = {}) {
   rollover();
@@ -698,7 +710,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v10");
+    const cache = await caches.open("ahorita-v11");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -762,7 +774,7 @@ function favoriteSection() {
     edit = f.kind === "base" ? "favorite-edit" : "skill-favorite-edit";
   const visible = items.slice(0, 6);
   if (!visible.some((x) => x.key === f.key)) visible[visible.length - 1] = f;
-  return `<section class="exercise-shortcuts" aria-label="Mis ejercicios"><div class="mini-heading"><h2>Mis ejercicios</h2><div>${items.length > 6 ? `<button class="text-button" data-action="favorite-all">Todos (${items.length})</button>` : ""}<button class="text-button" data-action="shortcut-new">+ Fijar</button></div></div>${items.length > 1 ? `<div class="exercise-switcher" aria-label="Elegir contador">${visible.map((x) => shortcutChoice(x)).join("")}</div>` : ""}<article class="exercise-counter" data-key="${esc(f.key)}"><div class="exercise-counter-head"><div><span class="eyebrow">${esc(f.kind === "base" ? labels[c.baseGroup] : skillCatalog[c.family].name)}</span><h3>${esc(c.movement)}</h3><p>${esc([c.variation, c.apparatus, c.support === "Libre" ? "" : c.support + ": " + c.supportNote].filter(Boolean).join(" · "))}</p></div><button class="exercise-counter-edit" data-action="${edit}" data-id="${esc(f.item.id)}" aria-label="Cambiar o quitar ${esc(c.movement)}">···</button></div><div class="exercise-counter-body"><div><strong class="exercise-total" aria-live="polite">${m.total}</strong><span> ${unit}${m.perLeg ? " / lado" : ""}</span><small>Hoy · todas las cargas</small></div><button class="shortcut-load" data-action="shortcut-load" data-key="${esc(f.key)}" aria-label="Cambiar lastre de ${esc(c.movement)}"><small>Próxima serie</small><strong>${esc(weightLabel(f.item.weight))} ⌄</strong></button></div><div class="quick exercise-quick">${shortcutIncrements(
+  return `<section class="exercise-shortcuts" aria-label="Mis ejercicios"><div class="mini-heading"><h2>Mis ejercicios</h2><div>${items.length > 6 ? `<button class="text-button" data-action="favorite-all">Todos (${items.length})</button>` : ""}<button class="text-button" data-action="shortcut-new">+ Fijar</button></div></div>${items.length > 1 ? `<div class="exercise-switcher" aria-label="Elegir contador">${visible.map((x) => shortcutChoice(x)).join("")}</div>` : ""}<article class="exercise-counter" data-key="${esc(f.key)}"><div class="exercise-counter-head"><div><span class="eyebrow">${esc(f.kind === "base" ? labels[c.baseGroup] : skillCatalog[c.family].name)}</span><h3>${esc(c.movement)}</h3><p>${esc([c.variation, c.apparatus, c.support === "Libre" ? "" : c.support + ": " + c.supportNote].filter(Boolean).join(" · "))}</p></div><button class="exercise-counter-edit" data-action="${edit}" data-id="${esc(f.item.id)}" aria-label="Cambiar o quitar ${esc(c.movement)}">···</button></div><div class="exercise-counter-body"><div><strong class="exercise-total" aria-live="polite">${m.total}</strong><span> ${unit}${m.perLeg ? " / lado" : ""}</span><small>Hoy · todas las cargas</small></div><div class="shortcut-weight-picker"><button class="shortcut-load" data-action="shortcut-load" data-key="${esc(f.key)}" aria-label="Cambiar lastre de ${esc(c.movement)}"><small>Próxima serie</small><strong>${esc(weightLabel(f.item.weight))} ⌄</strong></button>${weightUI.buttons(c, f.item.weight, { compact: true, key: f.key, limit: 2 })}</div></div><div class="quick exercise-quick">${shortcutIncrements(
     f,
     state.quick,
   )
@@ -788,6 +800,14 @@ function logShortcut(f, value) {
   if (f.kind === "base") add(f.item.group, value, f.item);
   else skillsUI.logPreset({ ...f.item, value });
 }
+function setShortcutWeight(f, value, announce = true) {
+  rememberWeights(state, shortcutConfig(f), f.item.weight, value);
+  f.item.weight = value;
+  save();
+  render();
+  if (announce)
+    toast(value ? `Próxima serie: +${value} lb` : "Próxima serie sin lastre");
+}
 function shortcutSheet(f, mode) {
   if (!f) return;
   const c = shortcutConfig(f),
@@ -795,7 +815,7 @@ function shortcutSheet(f, mode) {
     load = mode === "load";
   openSheet(
     load ? "Cambiar lastre" : "Registrar una serie",
-    `<p class="note">${esc(shortcutTitle(f))} · ${esc(c.variation)}</p><form id="shortcut-form" data-key="${esc(f.key)}" data-mode="${mode}"><label class="field">${load ? "Lastre añadido total · lb" : seconds ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" required type="number" inputmode="${load || seconds ? "decimal" : "numeric"}" min="${load ? 0 : seconds ? 0.1 : 1}" max="${load ? 2000 : seconds ? 36000 : 10000}" step="${load ? 0.5 : seconds ? 0.1 : 1}" value="${load ? f.item.weight : ""}" autofocus></label><p class="note">${load ? "Se usa para las próximas series de este ejercicio. Las series guardadas conservan su peso." : weightLabel(f.item.weight) + ". Se guarda una sola serie y actualiza tus metas, historial y marcas."}</p><button class="primary wide">${load ? "Usar este lastre" : "Guardar serie"}</button></form>`,
+    `<p class="note">${esc(shortcutTitle(f))} · ${esc(c.variation)}</p><form id="shortcut-form" data-key="${esc(f.key)}" data-mode="${mode}"><label class="field">${load ? "Lastre añadido total · lb" : seconds ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" required type="number" inputmode="${load || seconds ? "decimal" : "numeric"}" min="${load ? 0 : seconds ? 0.1 : 1}" max="${load ? 2000 : seconds ? 36000 : 10000}" step="${load ? 0.5 : seconds ? 0.1 : 1}" value="${load ? f.item.weight : ""}" autofocus></label>${load ? weightUI.buttons(c, f.item.weight, { target: "value" }) : ""}<p class="note">${load ? "Se usa para las próximas series de este ejercicio. Las series guardadas conservan su peso." : weightLabel(f.item.weight) + ". Se guarda una sola serie y actualiza tus metas, historial y marcas."}</p><button class="primary wide">${load ? "Usar este lastre" : "Guardar serie"}</button></form>`,
   );
 }
 function allShortcutChoices() {
@@ -1244,10 +1264,7 @@ document.addEventListener("submit", (e) => {
         value * 2 !== Math.round(value * 2)
       )
         throw Error("Usa un peso entre 0 y 2000 lb, en pasos de 0.5.");
-      f.item.weight = value;
-      save();
-      render();
-      toast("Lastre actualizado para las próximas series");
+      setShortcutWeight(f, value);
     } else logShortcut(f, value);
     $("#sheet").close();
   } catch (err) {

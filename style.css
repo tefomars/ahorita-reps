@@ -3272,3 +3272,53 @@ header .local {
   color: #fafbf5;
   border-color: #252a22;
 }
+
+/* Reuse a recent load without opening the keyboard. */
+.weight-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 2px 0 15px;
+}
+.weight-presets button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 11px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 550;
+}
+.weight-presets button[aria-pressed="true"] {
+  background: #e7eddf;
+  border-color: #a7bb94;
+  color: #364b2b;
+}
+.weight-field {
+  min-width: 0;
+}
+.weight-field .field {
+  margin-bottom: 10px;
+}
+.weight-presets.compact {
+  justify-content: flex-end;
+  gap: 5px;
+  margin: 1px 0 0;
+}
+.weight-presets.compact button {
+  padding: 7px 9px;
+  min-height: 40px;
+  font-size: 11px;
+}
+.shortcut-weight-picker {
+  max-width: 55%;
+  display: grid;
+  justify-items: end;
+  min-width: 0;
+}
+.shortcut-weight-picker .shortcut-load {
+  max-width: none;
+  text-align: right;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}

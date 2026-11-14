@@ -162,6 +162,7 @@ export function upgrade(s) {
   s.backup ??= { enabled: true, lastExportAt: null, snoozedUntil: null };
   s.preferences ??= { timerSound: false };
   s.preferences.activeShortcut ??= null;
+  s.preferences.weightPresets ??= [];
   s.skills ??= defaultSkillStore();
   s.training ??= trainingDefaults();
   return s;
@@ -204,6 +205,27 @@ export function validateExtras(s) {
       ))
   )
     throw Error("Respaldo no válido.");
+  if (
+    s.preferences?.weightPresets !== undefined &&
+    (!Array.isArray(s.preferences.weightPresets) ||
+      s.preferences.weightPresets.length > 24 ||
+      !s.preferences.weightPresets.every(
+        (p) =>
+          p &&
+          typeof p.exercise === "string" &&
+          p.exercise.length > 0 &&
+          p.exercise.length <= 300 &&
+          Number.isFinite(p.weight) &&
+          p.weight > 0 &&
+          p.weight <= 2000,
+      ) ||
+      new Set(
+        s.preferences.weightPresets.map((p) =>
+          JSON.stringify([p.exercise, p.weight]),
+        ),
+      ).size !== s.preferences.weightPresets.length)
+  )
+    throw Error("Pesos recientes no válidos.");
   if (
     s.preferences !== undefined &&
     (!s.preferences ||

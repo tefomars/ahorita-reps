@@ -100,6 +100,8 @@ La práctica de calistenia también cuenta como actividad en el calendario y en 
 2. Elige la variante, equipo y grupo al que sumará. Un «Botón habitual» permite elegir tus reps o segundos frecuentes; ya viene con una cantidad inicial. Guarda la favorita.
 3. El ejercicio aparece como un contador en Hoy. Los botones incluyen una cantidad pequeña, tu serie habitual y otra cantidad; ··· junto a ellos permite registrar cualquier cantidad válida. El botón ··· de arriba edita, cambia o quita el ejercicio fijado. También puedes cambiarlo usando «Buscar o cambiar ejercicio» dentro de esa configuración.
 
+**Cambiar de peso con un toque:** junto a los campos de libras aparecen **Sin lastre · 0 lb** y hasta tres pesos de ese ejercicio. En «Mis ejercicios», «Próxima serie» tiene accesos directos **0 lb / +X lb** cuando hay un peso añadido conocido. Puedes alternar, por ejemplo, **50 → 0 → 50** sin volver a escribirlo. Los accesos recuerdan pesos elegidos y recuperan cargas del historial del mismo ejercicio, también de días anteriores; no mezclan pesos de otros ejercicios. Cambiar una opción no registra reps ni modifica el peso de series anteriores. Dentro de un formulario debes guardar la selección o serie como siempre. Los pesos recientes se incluyen en la copia JSON.
+
 **Ejemplo:** registra 8 front lever raises tuck sin lastre y otras 8 a +10 lb. Su contador muestra **16 reps hoy** y ambas series suman a Pull una sola vez. «Próxima serie» cambia las lb para los próximos toques sin modificar los registros anteriores. Las marcas por carga permanecen separadas.
 
 El contador suma las series del día de **la misma variante, equipo y asistencia, con todas sus cargas**, incluidas las que registres desde Entrenar u otro acceso al mismo ejercicio. Straddle y tuck tienen totales distintos. Los intentos no completados quedan fuera. Cada día muestra su propio total; el historial conserva los días anteriores. En Legs, un acceso de ambas piernas muestra reps por lado.
@@ -208,6 +210,7 @@ No requiere dependencias, compilación, base de datos ni claves API.
 - `skills-core.mjs`: catálogo, validación, flujo común de series y marcas automáticas de calistenia.
 - `journey-core.mjs`: favoritas universales, totales diarios por ejercicio, enfoques y fichas/gráficas.
 - `journey-ui.mjs`: fichas interactivas de evolución por variante y carga.
+- `weight-shortcuts.mjs`: accesos de 0 lb y cargas recientes por ejercicio, compartidos entre formularios y Hoy.
 - `skills-ui.mjs`: registro, buscador, historial y marcas de calistenia.
 - `training-core.mjs`: metas, sesiones, resúmenes, combinación de copias y comparaciones entre periodos.
 - `training-ui.mjs`: planes, sesión activa y metas de habilidades.
