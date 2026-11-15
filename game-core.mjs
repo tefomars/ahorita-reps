@@ -1,3 +1,4 @@
+import { achievementSummary } from "./achievement-core.mjs";
 import { allJournalEntries } from "./skills-core.mjs";
 export function difficulty(e) {
   if (Number.isInteger(e.difficulty) && e.difficulty >= 1 && e.difficulty <= 5)
@@ -82,10 +83,14 @@ export function gameSummary(s, today) {
     activeDays = days.size,
     weekDays = weeks.get(monday(today))?.size ?? 0,
     completedWeeks = [...weeks.values()].filter((x) => x.size >= 3).length;
-  const xp = Math.floor(seriesXP + activeDays * 20 + completedWeeks * 50),
+  const achievementRewards = achievementSummary(s, today);
+  const xp = Math.floor(
+      seriesXP + activeDays * 20 + completedWeeks * 50 + achievementRewards.xp,
+    ),
     weekReward = weekDays >= 3 ? 50 : 0,
     todayXP = Math.floor(
-      (days.get(today) ?? 0) +
+      achievementRewards.todayXP +
+        (days.get(today) ?? 0) +
         (days.has(today) ? 20 : 0) +
         (weekDays >= 3 && [...weeks.get(monday(today))].sort()[2] === today
           ? 50
@@ -115,6 +120,9 @@ export function gameSummary(s, today) {
     weekDays,
     weekReward,
     seriesXP: Math.floor(seriesXP),
+    achievementXP: achievementRewards.xp,
+    achievementRewards,
+    achievementCount: achievementRewards.earned.length,
     dailyBonus: activeDays * 20,
     weeklyBonus: completedWeeks * 50,
     details,

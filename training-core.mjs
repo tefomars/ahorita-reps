@@ -333,6 +333,17 @@ export function mergeBackups(current, incoming, prefer = "local") {
       incoming.training[type],
       type,
     );
+  if (out.economy && incoming.economy)
+    out.economy.rolls = union(
+      out.economy.rolls,
+      incoming.economy.rolls,
+      "Cofres y títulos",
+    );
+  if (
+    out.economy?.equipped &&
+    !out.economy.rolls.some((r) => r.titleId === out.economy.equipped)
+  )
+    out.economy.equipped = null;
   out.shortcutOrder = [
     ...new Set([...out.shortcutOrder, ...incoming.shortcutOrder]),
   ];

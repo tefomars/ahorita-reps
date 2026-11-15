@@ -237,3 +237,35 @@ Las series completadas dan puntos por reps o segundos, multiplicados por dificul
 Reglas de juego: reps × 2 + duración / 15, o segundos de hold / 3; dificultad ×1 a ×2; bonificación por peso = min(1, log2(1 + lb/25)/3), aplicada como multiplicador ×1 a ×2. +20 XP por día con actividad, incluidos intentos, y +50 por semana con práctica en tres días distintos (lunes a domingo). Los intentos no dan puntos de serie. Crear ejercicios favoritos o planes, cambiar libras o abrir la app no da puntos. El redondeo se aplica al total para reducir incentivos de dividir series.
 
 Editar, borrar, importar o deshacer recalcula XP y logros desde los registros originales. Los logros de series y días activos son personales; no hay clasificación pública ni pagos. La XP es una regla de motivación, **no una medida fisiológica ni una pauta de entrenamiento**. La duración y dificultad se incluyen en el respaldo.
+
+## Logros por ejercicio y monedas
+
+En **Hoy → nivel → Logros por ejercicio** hay **294 hitos**, con búsqueda y filtros por ejercicio y estado. La lista muestra 24 a la vez y «Ver más» amplía sin llenar Hoy. Los logros dan automáticamente la XP y las monedas indicadas, una vez por hito; el historial anterior también cuenta.
+
+- Front lever, back lever y planche: holds y reps por variante, de tuck a full. El primer full es un hold de al menos 1 segundo; luego hay 5, 10, 15, 20, 30 y 60 segundos. Tuck y advanced tuck tienen sus propios hitos.
+- Pull-ups, pushups y dips estándar: mejor serie, total de un día, acumuladas de por vida y lastre de una serie completada. La ficha indica exactamente qué cuenta; no se suman dos series cortas para un logro de mejor serie.
+- Muscle-ups estrictos y con kipping tienen hitos distintos; también hay handstand libre, human flag completo, L-sit completo, dragon flag y pistols por lado, además de constancia.
+- Solo series completadas sin asistencia cuentan para los logros de técnica. Los intentos sí pueden aportar a los días de actividad. Holds y reps permanecen separados. «Preparar registro» abre el formulario con la configuración, sin guardar una serie.
+
+**Monedas recurrentes:** +5 por cada día activo, +10 por nivel a partir del 2, +25 extra en los niveles 5, 10, 15… y +5 por cada cuarto completado de la meta diaria de cada grupo (25 %, 50 %, 75 %, 100 %). Son hasta 20 por grupo y día; los grupos con meta 0 no dan premios por meta. Legs usa el contador por lado, igual que Hoy. Se usa la meta guardada para ese día y se recalcula si la editas. Una misma fracción del mismo grupo y día no vuelve a pagarse por recargar, importar o alternar la meta.
+
+Las ganancias se calculan desde el historial; no hay un botón de cobrar que pueda duplicarlas. Los gastos son recibos guardados con IDs únicos. Corregir series o metas puede reducir el saldo, incluso por debajo de cero si ya gastaste las monedas; conservas los títulos y las siguientes ganancias cubren el saldo antes de otra apertura. No es una deuda de dinero real.
+
+## Tienda, cofres y títulos
+
+El **icono de cofre junto al nivel** abre la tienda; también está en el panel del nivel. Hay **60 títulos originales** con temas de odontología, Minecraft y Deepwoken. Escoge un cofre mixto o un tema concreto. Cada apertura cuesta **100 monedas del juego** y entrega un título. Si se repite, devuelve **25 monedas**. Equipar o quitar un título es gratis y aparece junto al nivel en Hoy.
+
+| Rareza        | Probabilidad por apertura |
+| ------------- | ------------------------: |
+| Común         |                  76.889 % |
+| Raro          |                      20 % |
+| Épico         |                       3 % |
+| Legendario    |         0.1 % · 1 de 1000 |
+| Mítico        |       0.01 % · 1 de 10000 |
+| Súper secreto |     0.001 % · 1 de 100000 |
+
+Las cifras se interpretan como porcentajes y suman 100 %. Se elige primero la rareza con 100000 tickets equiprobables y luego un título de su tema/rareza con la misma probabilidad entre los candidatos. Se usa el generador aleatorio del navegador con rechazo para evitar sesgo de módulo. Cada apertura es independiente; no hay aumento oculto de suerte ni garantía de rareza. El nombre de los súper secretos permanece oculto en la colección hasta obtenerlos, pero sus probabilidades siempre son visibles. En tema mixto se reparten entre los tres temas. No se compran monedas con dinero real ni se canjean títulos por dinero.
+
+Las compras se guardan antes de mostrar el resultado. Si falla el guardado, la compra se revierte. La colección, los títulos equipados y los recibos van en el JSON de respaldo y el ZIP incluye el catálogo. Al combinar copias se unen los recibos por ID; importar el mismo archivo no duplica aperturas. Dos compras distintas hechas en instalaciones separadas sí son dos gastos al combinarlas y podrían reducir el saldo. Equipar un título nunca afecta a tus ejercicios ni a la XP.
+
+La terminología se consultó en [Deepwoken Wiki · Oaths](https://deepwoken.fandom.com/wiki/Oaths), [Deepwoken Wiki · Resonance](https://deepwoken.fandom.com/wiki/Resonance), [Minecraft Wiki · Encyclopedia](https://minecraft.wiki/w/Encyclopedia) y [Minecraft Wiki · Advancement](https://minecraft.wiki/w/Advancement). Los títulos son combinaciones creativas; sus rarezas y premios son propias de Reps y no corresponden a los de esos juegos.

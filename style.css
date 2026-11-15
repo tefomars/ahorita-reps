@@ -3435,3 +3435,287 @@ header .local {
   font-size: 11px;
   color: var(--muted);
 }
+/* Rewards live behind the level card and one small store access. */
+.game-profile {
+  margin-bottom: 22px;
+}
+.level-hub {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.level-hub .level-card {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.store-access {
+  flex-shrink: 0;
+  border: 1px solid #d4ddc7;
+  border-radius: 14px;
+  background: #edf1e4;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  padding: 10px;
+  min-width: 58px;
+}
+.store-access b {
+  font-size: 24px;
+}
+.store-access small {
+  font-size: 11px;
+}
+.equipped-title {
+  font-size: 11px;
+  margin: 0 0 7px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.reward-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  background: #ecefe4;
+  border-radius: 12px;
+  margin: 10px 0 16px;
+}
+.reward-tabs button {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  font-size: 12px;
+  padding: 7px;
+}
+.reward-tabs button[aria-selected="true"] {
+  background: #fff;
+  font-weight: 700;
+}
+.wallet-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.wallet-line small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.achievement {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 12px 0;
+}
+.achievement.earned {
+  background: #edf2e5;
+  border-color: #b9caa7;
+}
+.achievement .mini-heading {
+  margin: 0;
+}
+.achievement h3 {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  margin: 9px 0;
+}
+.achievement p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.achievement .progress {
+  height: 5px;
+}
+.achievement .progress i {
+  background: #688c4c;
+}
+.achievement-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.achievement-bottom small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.chest-shop {
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 18px;
+  margin: 18px 0;
+}
+.chest-shop label {
+  text-align: left;
+}
+.chest-illustration {
+  font-size: 68px;
+  color: #987132;
+  line-height: 1.3;
+  position: relative;
+  display: inline-block;
+}
+.chest-illustration span {
+  position: absolute;
+  right: -15px;
+  top: 0;
+  font-size: 25px;
+  color: #d0a24d;
+}
+.chest-result {
+  text-align: center;
+  border: 2px solid currentColor;
+  border-radius: 15px;
+  padding: 22px 15px;
+  margin: 18px 0;
+  animation: chest-reveal 0.4s ease-out;
+}
+.chest-result h3 {
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+.chest-result p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.odds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+  margin: 15px 0;
+}
+.odds-table td,
+.odds-table th {
+  padding: 10px 3px;
+  border-bottom: 1px solid var(--line);
+}
+.rarity.common,
+.chest-result.common {
+  color: #697365;
+}
+.rarity.rare,
+.chest-result.rare {
+  color: #356ba1;
+}
+.rarity.epic,
+.chest-result.epic {
+  color: #8150a5;
+}
+.rarity.legendary,
+.chest-result.legendary {
+  color: #98701b;
+}
+.rarity.mythic,
+.chest-result.mythic {
+  color: #bb3e71;
+}
+.rarity.secret,
+.chest-result.secret {
+  color: #247a74;
+  text-shadow: 0 0 8px #60d6c344;
+}
+.earning-rules {
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.earning-rules summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.earning-rules p {
+  line-height: 1.6;
+}
+.title-collection {
+  display: grid;
+  gap: 9px;
+}
+.title-item {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.title-item > strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.title-item > small {
+  font-size: 11px;
+}
+.title-item.locked {
+  background: #efefe8;
+}
+.title-item .text-button {
+  text-align: left;
+  justify-self: start;
+}
+.coin-goals {
+  background: #edf1e4;
+  border-radius: 10px;
+  padding: 1px 14px;
+}
+.level-hub .level-card {
+  padding: 12px;
+  gap: 10px;
+}
+.level-hub .level-token {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+}
+.level-hub .level-copy > strong {
+  font-size: 13px;
+}
+.level-hub .level-copy > small {
+  font-size: 9px;
+}
+@keyframes chest-reveal {
+  from {
+    transform: translateY(8px) scale(0.97);
+    opacity: 0.3;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chest-result {
+    animation: none;
+  }
+}
+@media (max-width: 359px) {
+  .level-hub {
+    gap: 5px;
+  }
+  .store-access {
+    padding: 7px;
+    min-width: 49px;
+  }
+  .level-hub .level-card {
+    padding: 10px;
+    gap: 8px;
+  }
+  .level-hub .level-token {
+    width: 31px;
+    height: 31px;
+    font-size: 16px;
+  }
+  .wallet-line {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .odds-table {
+    font-size: 10px;
+  }
+}

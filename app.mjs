@@ -1,3 +1,4 @@
+import { createRewardUI } from "./reward-ui.mjs";
 import { gameSummary, effortFields, readEffort } from "./game-core.mjs";
 import { createGameUI } from "./game-ui.mjs";
 import { createWeightUI, rememberWeights } from "./weight-shortcuts.mjs";
@@ -82,7 +83,8 @@ let progressWeek = startOfWeek(activeDay),
   detailOpen = false;
 let lastGame = gameSummary(state, activeDay),
   gameGain = 0,
-  gameLevelUp = false;
+  gameLevelUp = false,
+  gameUnlocks = 0;
 const gameUI = createGameUI({
   getState: () => state,
   getToday: () => activeDay,
@@ -186,6 +188,16 @@ const trainingUI = createTrainingUI({
       : skillsUI.logPreset(step.preset, meta),
   startRest,
 });
+const rewardUI = createRewardUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  esc,
+  save,
+  render,
+  openSheet,
+  toast,
+  log: (config) => skillsUI.prepareLog(config),
+});
 const weightLabel = (w) => (w ? `+${w} lb` : "Sin peso añadido");
 const sideLabel = (s) =>
   s === "left" ? "Izquierda" : s === "right" ? "Derecha" : "Por pierna";
@@ -195,6 +207,10 @@ function save() {
     storageError = false;
     const next = gameSummary(state, activeDay);
     gameGain = next.xp - lastGame.xp;
+    gameUnlocks = Math.max(
+      0,
+      next.achievementCount - lastGame.achievementCount,
+    );
     gameLevelUp = next.level > lastGame.level;
     lastGame = next;
     return true;
@@ -217,6 +233,9 @@ function current() {
 function toast(message, undo) {
   if (gameGain > 0) {
     message += ` · +${gameGain} XP${gameLevelUp ? " · ¡Nivel " + lastGame.level + "!" : ""}`;
+    if (gameUnlocks)
+      message += ` · 🏆 ${gameUnlocks} ${gameUnlocks === 1 ? "logro" : "logros"}`;
+    gameUnlocks = 0;
     gameGain = 0;
     gameLevelUp = false;
   }
@@ -746,7 +765,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v13");
+    const cache = await caches.open("ahorita-v14");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8

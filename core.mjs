@@ -1,3 +1,4 @@
+import { economyDefaults, validateEconomy } from "./economy-store.mjs";
 import { trainingDefaults, validateTraining } from "./training-core.mjs";
 import { validateJourney } from "./journey-core.mjs";
 import {
@@ -173,9 +174,11 @@ export function upgrade(s) {
   s.preferences.weightPresets ??= [];
   s.skills ??= defaultSkillStore();
   s.training ??= trainingDefaults();
+  s.economy ??= economyDefaults();
   return s;
 }
 export function validateExtras(s) {
+  validateEconomy(s);
   validateJourney(s);
   validateTraining(s);
   if (s.skills !== undefined) validateSkillStore(s.skills);
