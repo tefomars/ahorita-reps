@@ -1,3 +1,4 @@
+import { activeTitles, themeReady } from "./title-pack.mjs";
 import { gameSummary } from "./game-core.mjs";
 import { allJournalEntries, skillContributions } from "./skills-core.mjs";
 import { TITLES, RARITIES } from "./title-catalog.mjs";
@@ -65,12 +66,17 @@ export function randomInt(max) {
   } while (a[0] >= limit);
   return a[0] % max;
 }
-export function titleForTicket(ticket, index = 0, theme = "all") {
+export function titleForTicket(
+  ticket,
+  index = 0,
+  theme = "all",
+  catalog = TITLES,
+) {
   if (!Number.isInteger(ticket) || ticket < 0 || ticket >= 100000)
     throw Error("Ticket inválido.");
   let sum = 0;
   const rarity = RARITIES.find((r) => (sum += r.tickets) > ticket);
-  const pool = TITLES.filter(
+  const pool = catalog.filter(
     (t) => t.rarity === rarity.id && (theme === "all" || t.theme === theme),
   );
   if (!pool.length) throw Error("Tema inválido.");
@@ -86,13 +92,17 @@ export function buyChest(
     id = crypto.randomUUID(),
   } = {},
 ) {
-  if (!["all", "dental", "minecraft", "deepwoken"].includes(theme))
+  if (!["all", "dental", "minecraft", "deepwoken", "custom"].includes(theme))
     throw Error("Elige un tema válido.");
+  if (!themeReady(state, theme))
+    throw Error(
+      "Este tema necesita títulos en las seis rarezas para mantener las probabilidades publicadas.",
+    );
   if (wallet(state, today).balance < CHEST_PRICE)
     throw Error("Necesitas 100 monedas para abrir este cofre.");
   const ticket = rng(100000),
-    rarity = titleForTicket(ticket, 0, theme).rarity,
-    pool = TITLES.filter(
+    rarity = titleForTicket(ticket, 0, theme, activeTitles(state)).rarity,
+    pool = activeTitles(state).filter(
       (t) => t.rarity === rarity && (theme === "all" || t.theme === theme),
     ),
     title = pool[rng(pool.length)];
@@ -101,6 +111,7 @@ export function buyChest(
       id,
       at: now,
       titleId: title.id,
+      title: { ...title },
       price: 100,
       refund: duplicate ? 25 : 0,
     };

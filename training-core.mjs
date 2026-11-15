@@ -316,6 +316,11 @@ export function mergeBackups(current, incoming, prefer = "local") {
       "Registros " + day,
     );
   }
+  out.exerciseBook = union(
+    out.exerciseBook ?? [],
+    incoming.exerciseBook ?? [],
+    "Biblioteca propia",
+  );
   out.skills.entries = union(
     out.skills.entries,
     incoming.skills.entries,
@@ -332,6 +337,12 @@ export function mergeBackups(current, incoming, prefer = "local") {
       out.training[type],
       incoming.training[type],
       type,
+    );
+  if (out.economy && incoming.economy)
+    out.economy.customTitles = union(
+      out.economy.customTitles ?? [],
+      incoming.economy.customTitles ?? [],
+      "Catálogo de títulos",
     );
   if (out.economy && incoming.economy)
     out.economy.rolls = union(

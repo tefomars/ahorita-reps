@@ -1,4 +1,9 @@
-import { economyDefaults, validateEconomy } from "./economy-store.mjs";
+import { validateExerciseBook } from "./exercise-book.mjs";
+import {
+  economyDefaults,
+  validateEconomy,
+  upgradeEconomy,
+} from "./economy-store.mjs";
 import { trainingDefaults, validateTraining } from "./training-core.mjs";
 import { validateJourney } from "./journey-core.mjs";
 import {
@@ -174,10 +179,13 @@ export function upgrade(s) {
   s.preferences.weightPresets ??= [];
   s.skills ??= defaultSkillStore();
   s.training ??= trainingDefaults();
+  s.exerciseBook ??= [];
   s.economy ??= economyDefaults();
+  upgradeEconomy(s);
   return s;
 }
 export function validateExtras(s) {
+  validateExerciseBook(s);
   validateEconomy(s);
   validateJourney(s);
   validateTraining(s);

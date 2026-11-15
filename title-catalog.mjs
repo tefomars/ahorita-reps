@@ -1,3 +1,4 @@
+import { WIKI_TITLES } from "./title-data.mjs";
 export const RARITIES = [
   {
     id: "common",
@@ -41,100 +42,36 @@ export const THEMES = [
   ["dental", "Odontología"],
   ["minecraft", "Minecraft"],
   ["deepwoken", "Deepwoken"],
+  ["custom", "Personalizados"],
 ];
-// Original title combinations inspired by terminology; rarity is specific to Reps.
+// Direct names; rarity tiers are editorial choices for Reps.
 const names = {
   dental: [
-    [
-      "Explorador del Esmalte",
-      "Aprendiz de la Sonda",
-      "Guardián de la Encía",
-      "Portador del Espejo",
-    ],
-    [
-      "Escultor de Resina",
-      "Centinela de la Dentina",
-      "Arquitecto de la Oclusión",
-      "Custodio del Periodonto",
-    ],
-    [
-      "Endodoncista de Acero",
-      "Maestro de la Obturación",
-      "Paladín del Esmalte",
-      "Forjador de Sonrisas",
-    ],
-    ["Soberano de la Corona", "Titán del Titanio", "Oráculo de la Pulpa"],
-    [
-      "Monarca de la Hidroxiapatita",
-      "Arcángel de la Oclusión",
-      "Guardián del Ápice Eterno",
-    ],
-    ["El Molar Primordial", "La Última Cúspide"],
+    ["Esmalte", "Dentina", "Encía", "Espejo dental"],
+    ["Resina compuesta", "Periodonto", "Ápice", "Obturación"],
+    ["Endodoncia", "Ortodoncia", "Implante dental", "Prótesis fija"],
+    ["Corona dental", "Titanio", "Pulpa dental"],
+    ["Hidroxiapatita", "Oclusión", "Cemento radicular"],
+    ["Amelogénesis", "Odontogénesis"],
   ],
   minecraft: [
-    [
-      "Minero de Piedra",
-      "Aprendiz de Redstone",
-      "Guardián del Overworld",
-      "Portador del Pico",
-    ],
-    [
-      "Explorador del Nether",
-      "Guardián de Obsidiana",
-      "Forjador de Diamante",
-      "Viajero del End",
-    ],
-    [
-      "Alas de Elytra",
-      "Arquitecto de Redstone",
-      "Corazón de Netherite",
-      "Centinela del Warden",
-    ],
-    [
-      "Soberano del Ender Dragon",
-      "Portador de la Nether Star",
-      "Guardián del Dragon Egg",
-    ],
-    [
-      "Elytra del Vacío Eterno",
-      "Monarca de Ancient Debris",
-      "Eco del Último Enderman",
-    ],
-    ["El Bloque Antes del Mundo", "El Último Chunk"],
+    ["Stone", "Coal", "Iron Ingot", "Crafting Table"],
+    ["Diamond", "Obsidian", "Ender Pearl", "Enchanted Book"],
+    ["Elytra", "Netherite Ingot", "Totem of Undying", "Warden"],
+    ["Ender Dragon", "Nether Star", "Dragon Egg"],
+    ["Mace", "Silence Armor Trim", "Wither"],
+    ["Command Block", "Barrier"],
   ],
   deepwoken: [
-    [
-      "Pathfinder Novato",
-      "Viajero de Etris",
-      "Aprendiz de los Oaths",
-      "Eco de Erisia",
-    ],
-    [
-      "Jetstriker del Alba",
-      "Vigía Blindseer",
-      "Guardián de los Oaths",
-      "Caminante de las Depths",
-    ],
-    [
-      "Silentheart Inquebrantable",
-      "Visionshaper del Vacío",
-      "Resonancia Despierta",
-      "Contractor de Acero",
-    ],
-    [
-      "Dawnwalker Eterno",
-      "Heredero de Duke Erisia",
-      "Eco del Scion of Ethiron",
-    ],
-    [
-      "Campana de Yun’Shul",
-      "Portador de Resonancia Corrupta",
-      "Guardián de Layer 2",
-    ],
-    ["La Canción Antes del Abismo", "El Corazón que Yun’Shul Olvidó"],
+    ["Pathfinder", "Gobletto", "Mudskipper", "Etris"],
+    ["Jetstriker", "Blindseer", "Megalodaunt", "Isle of Vigils"],
+    ["Silentheart", "Visionshaper", "Resonance", "Contractor"],
+    ["Dawnwalker", "Duke Ishamon Erisia", "Scion of Ethiron"],
+    ["Corrupted Resonance", "Drowned Resonance", "Amorus Pleeksty"],
+    ["Deepwoken", "Ethiron"],
   ],
 };
-export const TITLES = Object.entries(names).flatMap(([theme, tiers]) =>
+const legacy = Object.entries(names).flatMap(([theme, tiers]) =>
   tiers.flatMap((list, index) =>
     list.map((name, n) => ({
       id: `${theme}-${RARITIES[index].id}-${n + 1}`,
@@ -144,21 +81,24 @@ export const TITLES = Object.entries(names).flatMap(([theme, tiers]) =>
     })),
   ),
 );
-export const TITLE_SOURCES = [
-  {
-    name: "Deepwoken Wiki · Oaths",
-    url: "https://deepwoken.fandom.com/wiki/Oaths",
-  },
-  {
-    name: "Deepwoken Wiki · Resonance",
-    url: "https://deepwoken.fandom.com/wiki/Resonance",
-  },
-  {
-    name: "Minecraft Wiki · Encyclopedia",
-    url: "https://minecraft.wiki/w/Encyclopedia",
-  },
-  {
-    name: "Minecraft Wiki · Advancement",
-    url: "https://minecraft.wiki/w/Advancement",
-  },
+const seen = new Set(legacy.map((t) => t.theme + "|" + t.name.toLowerCase()));
+export const TITLES = [
+  ...legacy.map((t) => ({
+    ...t,
+    rarity:
+      WIKI_TITLES.find((w) => w.name === t.name && w.theme === t.theme)
+        ?.rarity ?? t.rarity,
+    category:
+      WIKI_TITLES.find((w) => w.name === t.name && w.theme === t.theme)
+        ?.category ?? (t.theme === "dental" ? "odontología" : "term"),
+    reason:
+      WIKI_TITLES.find((w) => w.name === t.name && w.theme === t.theme)
+        ?.reason ?? "Rareza editorial de Reps según contexto y progresión.",
+  })),
+  ...WIKI_TITLES.filter((t) => {
+    const key = t.theme + "|" + t.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }),
 ];

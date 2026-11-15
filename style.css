@@ -3719,3 +3719,107 @@ header .local {
     font-size: 10px;
   }
 }
+.book-launch {
+  margin-bottom: 18px;
+}
+.book-card {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 15px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.book-card > div {
+  min-width: 0;
+}
+.book-card h3 {
+  font-size: 15px;
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+}
+.book-card p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.book-card > .secondary {
+  font-size: 11px;
+  flex-shrink: 0;
+  padding: 10px;
+  min-height: 40px;
+}
+.book-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 15px 0;
+}
+.book-actions button {
+  font-size: 12px;
+}
+.mastery-card {
+  border: 1px solid #c7d5b8;
+  background: #edf2e5;
+  border-radius: 14px;
+  padding: 17px;
+  margin: 18px 0;
+}
+.mastery-card h3 {
+  margin: 0 0 12px;
+}
+.mastery-card > p {
+  font-size: 12px;
+}
+.mastery-card .progress i {
+  background: #6b8b4e;
+}
+.mastery-track {
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+  font-size: 12px;
+}
+.mastery-track small {
+  font-size: 10px;
+  color: #5b7746;
+}
+.book-context {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+.book-context p,
+.book-context summary {
+  font-size: 11px;
+  color: var(--muted);
+}
+.book-context strong {
+  overflow-wrap: anywhere;
+}
+.mastery-card .skill-totals {
+  padding: 8px 0;
+}
+.title-item p {
+  margin: 0;
+}
+.title-item strong {
+  line-height: 1.4;
+}
+#title-pack-input,
+#title-example,
+#title-ai-prompt {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  max-width: 100%;
+}
+.achievement h3 {
+  line-height: 1.5;
+}
+.achievement-bottom {
+  align-items: baseline;
+}

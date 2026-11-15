@@ -1,3 +1,4 @@
+import { masterySummary } from "./mastery-core.mjs";
 import {
   allExerciseEntries,
   allJournalEntries,
@@ -270,14 +271,20 @@ export function achievementSummary(state, today) {
       percent: Math.min(100, (value / d.target) * 100),
     };
   });
+  const staticEarned = achievements.filter((a) => a.earned),
+    mastery = masterySummary(state, today);
+  achievements.push(...mastery.achievements);
   const earned = achievements.filter((a) => a.earned);
   return {
     achievements,
     earned,
-    xp: earned.reduce((n, a) => n + a.xp, 0),
-    coins: earned.reduce((n, a) => n + a.coins, 0),
-    todayXP: earned
-      .filter((a) => a.earnedDay === today)
-      .reduce((n, a) => n + a.xp, 0),
+    earnedCount: staticEarned.length + mastery.count,
+    mastery,
+    xp: staticEarned.reduce((n, a) => n + a.xp, 0) + mastery.xp,
+    coins: staticEarned.reduce((n, a) => n + a.coins, 0) + mastery.coins,
+    todayXP:
+      staticEarned
+        .filter((a) => a.earnedDay === today)
+        .reduce((n, a) => n + a.xp, 0) + mastery.todayXP,
   };
 }

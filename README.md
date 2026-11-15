@@ -240,7 +240,7 @@ Editar, borrar, importar o deshacer recalcula XP y logros desde los registros or
 
 ## Logros por ejercicio y monedas
 
-En **Hoy → nivel → Logros por ejercicio** hay **294 hitos**, con búsqueda y filtros por ejercicio y estado. La lista muestra 24 a la vez y «Ver más» amplía sin llenar Hoy. Los logros dan automáticamente la XP y las monedas indicadas, una vez por hito; el historial anterior también cuenta.
+En **Hoy → nivel → Logros por ejercicio** hay **294 hitos de técnica y constancia, más rutas acumulativas sin límite por ejercicio**, con búsqueda y filtros por ejercicio y estado. La lista muestra 24 a la vez y «Ver más» amplía sin llenar Hoy. Los logros dan automáticamente la XP y las monedas indicadas, una vez por hito; el historial anterior también cuenta.
 
 - Front lever, back lever y planche: holds y reps por variante, de tuck a full. El primer full es un hold de al menos 1 segundo; luego hay 5, 10, 15, 20, 30 y 60 segundos. Tuck y advanced tuck tienen sus propios hitos.
 - Pull-ups, pushups y dips estándar: mejor serie, total de un día, acumuladas de por vida y lastre de una serie completada. La ficha indica exactamente qué cuenta; no se suman dos series cortas para un logro de mejor serie.
@@ -253,7 +253,7 @@ Las ganancias se calculan desde el historial; no hay un botón de cobrar que pue
 
 ## Tienda, cofres y títulos
 
-El **icono de cofre junto al nivel** abre la tienda; también está en el panel del nivel. Hay **60 títulos originales** con temas de odontología, Minecraft y Deepwoken. Escoge un cofre mixto o un tema concreto. Cada apertura cuesta **100 monedas del juego** y entrega un título. Si se repite, devuelve **25 monedas**. Equipar o quitar un título es gratis y aparece junto al nivel en Hoy.
+El **icono de cofre junto al nivel** abre la tienda; también está en el panel del nivel. El catálogo incluido tiene **182 títulos directos**, de los cuales **126 son de Deepwoken**. Minecraft y Deepwoken están en inglés: nombres de objetos, criaturas, NPCs, oaths, bells y lugares, sin frases decorativas inventadas. Escoge un cofre mixto o un tema concreto. Cada apertura cuesta **100 monedas del juego** y entrega un título. Si se repite, devuelve **25 monedas**. Equipar o quitar un título es gratis y aparece junto al nivel en Hoy.
 
 | Rareza        | Probabilidad por apertura |
 | ------------- | ------------------------: |
@@ -268,4 +268,42 @@ Las cifras se interpretan como porcentajes y suman 100 %. Se elige primero la ra
 
 Las compras se guardan antes de mostrar el resultado. Si falla el guardado, la compra se revierte. La colección, los títulos equipados y los recibos van en el JSON de respaldo y el ZIP incluye el catálogo. Al combinar copias se unen los recibos por ID; importar el mismo archivo no duplica aperturas. Dos compras distintas hechas en instalaciones separadas sí son dos gastos al combinarlas y podrían reducir el saldo. Equipar un título nunca afecta a tus ejercicios ni a la XP.
 
-La terminología se consultó en [Deepwoken Wiki · Oaths](https://deepwoken.fandom.com/wiki/Oaths), [Deepwoken Wiki · Resonance](https://deepwoken.fandom.com/wiki/Resonance), [Minecraft Wiki · Encyclopedia](https://minecraft.wiki/w/Encyclopedia) y [Minecraft Wiki · Advancement](https://minecraft.wiki/w/Advancement). Los títulos son combinaciones creativas; sus rarezas y premios son propias de Reps y no corresponden a los de esos juegos.
+La terminología se consultó en Deepwoken Wiki · Oaths, Deepwoken Wiki · Resonance, Minecraft Wiki · Encyclopedia y Minecraft Wiki · Advancement. La app no muestra enlaces a las wikis. Las rarezas son decisiones editoriales de Reps basadas en categoría, rareza de objetos y contexto; no son una clasificación oficial compartida por ambos juegos. Gobletto es común, Megalodaunt raro, Crimson Megalodaunt épico, Akira legendario y Ethiron/Drallis Ehr/Deepwoken súper secretos dentro de esta colección. Ethiron se distingue de Scion of Ethiron.
+
+## Biblioteca propia y mastery
+
+**Entrenar → Registrar → Biblioteca de ejercicios y mastery** reúne todos los movimientos del catálogo, los propios guardados y los de tu historial. Busca en inglés o español y por nombres alternativos. **Agregar ejercicio permanente** guarda su nombre, familia, reps/segundos, variante, equipo, grupo de contador, alias y notas **sin crear una serie ni ganar XP**. También puedes crear desde el buscador de Registrar. Los ejercicios propios quedan disponibles al volver a abrir y en los respaldos.
+
+Cada ficha tiene sus acumulados, nivel de mastery, días, series, volumen con lastre y logros asociados. Dips, Pushups y Archer push-ups son movimientos distintos y conservan mastery independiente aunque todos sumen a Push. Dentro de una ficha, las variantes, equipos y ayudas conservan contextos separados, con mejores series por carga. Puedes pasar de la ficha a registrar, abrir su gráfica o ver todos sus logros; tocar el nombre en «Mis ejercicios» también abre la ficha. Editar información no renombra ni modifica registros históricos.
+
+La mastery local usa la XP de práctica de sus series, sin sumar los bonos globales de otros ejercicios. Las rutas infinitas dan un premio fijo por cada rango: cada 100 reps (o 300 segundos acumulados), cada 10 series, cada 5 días con series completadas y cada 1000 lb·reps o lb·segundos. También hay rangos por mejor serie **a cada carga**, variante/equipo/asistencia y por máximo lastre libre. El próximo rango se genera automáticamente, sin techo de rangos prefijado.
+
+Acumular práctica sigue premiando aunque no suba tu récord. Las rutas de volumen incluyen series completadas asistidas; los hitos de técnica libre mantienen su requisito sin asistencia. Las fichas infinitas muestran el último rango ganado y el próximo, pero las monedas y XP incluyen **todos** los rangos anteriores. No se almacena una lista ilimitada de premios cobrados: se derivan de tus registros, por lo que corregir o borrar también los recalcula.
+
+## Importar y reemplazar listas de títulos
+
+En **Ajustes → Catálogo de títulos → Importar listas de títulos** hay un prompt para copiar y mandar a una AI, un formato JSON de ejemplo, entrada por texto o archivo, vista previa y exportación de la lista activa. Reps no llama a una AI ni consume APIs. La lista admite hasta 10000 títulos y 2 MB por importación.
+
+```json
+{
+  "format": "reps.titles.v1",
+  "titles": [
+    {
+      "id": "my-canonical-term",
+      "name": "Your canonical term",
+      "theme": "custom",
+      "rarity": "rare",
+      "category": "item",
+      "reason": "Brief context for the selected tier."
+    }
+  ]
+}
+```
+
+Temas: `dental`, `minecraft`, `deepwoken`, `custom`. Rarezas: `common`, `rare`, `epic`, `legendary`, `mythic`, `secret`. Los IDs deben ser únicos y estables. `name` admite 120 caracteres, `category` 80 y `reason` 500. No hacen falta enlaces. El importador lee datos JSON y escapa el texto, no ejecuta código. Los IDs distintos identifican coleccionables distintos; conserva los IDs si estás actualizando la misma lista.
+
+**Agregar** combina los títulos personalizados por ID con la lista activa. **Reemplazar** cambia lo que puede salir en los cofres. Antes de aplicar se ve cuántos IDs se agregan, actualizan o salen y cuántos hay en cada rareza. Los títulos ya obtenidos conservan una instantánea en sus recibos, incluidos nombre y rareza; no desaparecen por reemplazar el catálogo. Cambiar nombre/tema/rareza de un ID ya poseído se bloquea para conservar su identidad: usa otro ID para un coleccionable nuevo.
+
+Para mantener las probabilidades publicadas, un cofre necesita al menos un título en cada una de las seis rarezas dentro del tema elegido. Se pueden importar listas parciales; se puede usar el cofre mixto si el conjunto está completo. Un tema incompleto queda desactivado hasta completarlo, sin redistribuir sus porcentajes.
+
+El JSON de respaldo completo incluye biblioteca propia, catálogo personalizado, modo del catálogo, colección, títulos equipados y recibos. Combinar respaldos une ejercicios, títulos y recibos por ID y conserva el modo local de catálogo. Para restaurar exactamente toda la configuración de una copia, usa la opción avanzada de reemplazar respaldo; importar una lista de títulos en Ajustes permite cambiar solo el catálogo.
