@@ -3849,3 +3849,63 @@ header .local {
     gap: 0;
   }
 }
+
+button.equipped-title {
+  display: block;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  max-width: 100%;
+}
+.inventory-switch {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.inventory-switch button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 12px;
+}
+.inventory-switch button[aria-pressed="true"] {
+  background: #e7eddf;
+  border-color: #8b9d7a;
+  font-weight: 700;
+}
+.inventory-equipped {
+  padding: 12px;
+  border: 1px solid #b9caa7;
+  border-radius: 12px;
+  background: #edf2e5;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.inventory-equipped small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.inventory-equipped strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.inventory-equipped button {
+  margin-left: auto;
+  font-size: 11px;
+}
+.inventory-empty {
+  text-align: center;
+  padding: 16px 0;
+}
+.inventory-empty p {
+  color: var(--muted);
+  font-size: 13px;
+}

@@ -17,6 +17,7 @@ export function createRewardUI(ctx) {
     filtersOpen = false,
     query = "",
     theme = "all",
+    collectionMode = "owned",
     inventoryRarity = "all",
     inventoryTheme = "all",
     inventoryQuery = "",
@@ -33,7 +34,7 @@ export function createRewardUI(ctx) {
     return `<div class="reward-tabs" role="tablist" aria-label="Recompensas">${[
       ["achievements", "Logros"],
       ["store", "▣ Tienda"],
-      ["collection", "Títulos"],
+      ["collection", "Inventario"],
     ]
       .map(
         ([key, label]) =>
@@ -132,6 +133,7 @@ export function createRewardUI(ctx) {
       terms = normalizeSearch(inventoryQuery).split(" ").filter(Boolean);
     const items = catalog.filter(
       (t) =>
+        (collectionMode === "catalog" || ids.has(t.id)) &&
         (inventoryRarity === "all" || t.rarity === inventoryRarity) &&
         (inventoryTheme === "all" || t.theme === inventoryTheme) &&
         terms.every((term) =>
@@ -140,11 +142,27 @@ export function createRewardUI(ctx) {
           ),
         ),
     );
-    return `<p class="quiet" role="status">${items.length} títulos</p><div class="title-collection">${items
+    if (collectionMode === "owned")
+      items.sort(
+        (a, b) =>
+          Number(b.id === s().economy.equipped) -
+            Number(a.id === s().economy.equipped) ||
+          RARITIES.findIndex((r) => r.id === b.rarity) -
+            RARITIES.findIndex((r) => r.id === a.rarity) ||
+          a.name.localeCompare(b.name, "en"),
+      );
+    const copies = new Map();
+    for (const r of s().economy.rolls)
+      copies.set(r.titleId, (copies.get(r.titleId) ?? 0) + 1);
+    if (!items.length)
+      return collectionMode === "owned" && !ids.size
+        ? '<section class="inventory-empty"><h3>Tu inventario está vacío</h3><p>Los títulos que ganes en cofres aparecen aquí para equiparlos.</p><button class="secondary" data-action="reward-store">Ir a la tienda</button></section>'
+        : '<p class="note" role="status">Sin títulos con esos filtros.</p><button class="text-button" data-action="reward-clear-inventory">Limpiar filtros</button>';
+    return `<p class="quiet" role="status">${items.length} títulos${collectionMode === "owned" ? " en tu inventario" : " en el catálogo"}</p><div class="title-collection">${items
       .slice(0, inventoryLimit)
       .map(
         (t) =>
-          `<article class="title-item ${ids.has(t.id) ? t.rarity : "locked"}"><small class="rarity ${t.rarity}">${rarity(t.rarity).name} · ${THEMES.find((x) => x[0] === t.theme)[1]}</small><strong>${t.rarity === "secret" && !ids.has(t.id) ? "???" : esc(t.name)}</strong><small>${esc(t.category ?? "term")}</small><p class="note">${esc(t.reason ?? "Rareza editorial de Reps.")}</p>${!activeIds.has(t.id) ? "<small>Conservado · fuera del catálogo activo</small>" : ""}${ids.has(t.id) ? `<button class="text-button" data-action="reward-equip" data-title="${t.id}" ${s().economy.equipped === t.id ? "disabled" : ""}>${s().economy.equipped === t.id ? "✓ Equipado" : "Equipar"}</button>` : "<small>Por descubrir en cofres</small>"}</article>`,
+          `<article class="title-item ${ids.has(t.id) ? t.rarity : "locked"}"><small class="rarity ${t.rarity}">${rarity(t.rarity).name} · ${THEMES.find((x) => x[0] === t.theme)[1]}</small><strong>${t.rarity === "secret" && !ids.has(t.id) ? "???" : esc(t.name)}</strong><small>${esc(t.category ?? "term")}${ids.has(t.id) && copies.get(t.id) > 1 ? ` · Obtenido ${copies.get(t.id)} veces` : ""}</small><p class="note">${esc(t.reason ?? "Rareza editorial de Reps.")}</p>${!activeIds.has(t.id) ? "<small>Conservado · fuera del catálogo activo</small>" : ""}${ids.has(t.id) ? `<button class="text-button" data-action="reward-equip" data-title="${t.id}" ${s().economy.equipped === t.id ? "disabled" : ""}>${s().economy.equipped === t.id ? "✓ Equipado" : "Equipar"}</button>` : "<small>Por descubrir en cofres</small>"}</article>`,
       )
       .join(
         "",
@@ -153,13 +171,8 @@ export function createRewardUI(ctx) {
   function collection(w) {
     const ids = owned(),
       catalog = allTitles(s()),
-      activeIds = new Set(activeTitles(s()).map((t) => t.id)),
-      items = catalog.filter(
-        (t) =>
-          (inventoryRarity === "all" || t.rarity === inventoryRarity) &&
-          (inventoryTheme === "all" || t.theme === inventoryTheme),
-      );
-    return `<p class="note">${ids.size} / ${catalog.length} títulos conseguidos. El título equipado aparece junto a tu nivel en Hoy.</p><div class="row"><label class="field">Rareza<select id="inventory-rarity"><option value="all">Todas</option>${RARITIES.map((r) => `<option value="${r.id}" ${inventoryRarity === r.id ? "selected" : ""}>${r.name}</option>`).join("")}</select></label><label class="field">Tema<select id="inventory-theme">${THEMES.map(([id, name]) => `<option value="${id}" ${inventoryTheme === id ? "selected" : ""}>${name}</option>`).join("")}</select></label></div>${s().economy.equipped ? '<button class="text-button" data-action="reward-unequip">Quitar título equipado</button>' : ""}<label class="field">Buscar título o categoría<input id="inventory-query" type="search" autocomplete="off" value="${esc(inventoryQuery)}" placeholder="Akira, NPC, bell, item…"></label><div id="title-results">${collectionRows()}</div><details class="earning-rules"><summary>Últimas aperturas</summary>${
+      equipped = catalog.find((t) => t.id === s().economy.equipped);
+    return `<div class="inventory-switch" role="group" aria-label="Vista de títulos"><button data-action="reward-inventory-mode" data-mode="owned" aria-pressed="${collectionMode === "owned"}">Mis títulos · ${ids.size}</button><button data-action="reward-inventory-mode" data-mode="catalog" aria-pressed="${collectionMode === "catalog"}">Catálogo · ${catalog.length}</button></div><p class="note">${collectionMode === "owned" ? "Tu inventario reúne los títulos que ya ganaste. Elegí uno para mostrarlo junto a tu nivel." : "Explorá todos los títulos. Los que ya tenés muestran el botón Equipar."}</p>${equipped ? `<div class="inventory-equipped"><small>Equipado</small><strong class="rarity ${equipped.rarity}">✦ ${esc(equipped.name)}</strong><button class="text-button" data-action="reward-unequip">Quitar título</button></div>` : ""}<label class="field">Buscar ${collectionMode === "owned" ? "en mi inventario" : "en el catálogo"}<input id="inventory-query" type="search" autocomplete="off" value="${esc(inventoryQuery)}" placeholder="Nombre o categoría…"></label><details id="inventory-filters" class="earning-rules" ${inventoryRarity !== "all" || inventoryTheme !== "all" ? "open" : ""}><summary>Filtrar por rareza o tema${inventoryRarity !== "all" || inventoryTheme !== "all" ? " · activos" : ""}</summary><div class="row"><label class="field">Rareza<select id="inventory-rarity"><option value="all">Todas</option>${RARITIES.map((r) => `<option value="${r.id}" ${inventoryRarity === r.id ? "selected" : ""}>${r.name}</option>`).join("")}</select></label><label class="field">Tema<select id="inventory-theme">${THEMES.map(([id, name]) => `<option value="${id}" ${inventoryTheme === id ? "selected" : ""}>${name}</option>`).join("")}</select></label></div></details><div id="title-results">${collectionRows()}</div><details class="earning-rules"><summary>Últimas aperturas</summary>${
       s()
         .economy.rolls.slice(-20)
         .reverse()
@@ -168,7 +181,7 @@ export function createRewardUI(ctx) {
             `<p class="note">${esc(allTitles(s()).find((t) => t.id === r.titleId)?.name ?? r.titleId)} · ${new Date(r.at).toLocaleDateString("es-GT")} · −${r.price - r.refund} monedas${r.refund ? " · repetido" : ""}</p>`,
         )
         .join("") || '<p class="note">Aún no hay aperturas.</p>'
-    }</details><details class="earning-rules"><summary>Criterio de rareza</summary><p class="note">Nombres directos. La asignación de Reps considera categoría, rareza de objetos y contexto de progresión o lore; no es una clasificación oficial del juego. Toca la ficha para leer su razón.</p></details>`;
+    }</details><details class="earning-rules"><summary>Criterio de rareza</summary><p class="note">Nombres directos. La asignación de Reps considera categoría, rareza de objetos y contexto de progresión o lore; no es una clasificación oficial del juego. Cada ficha muestra su razón.</p></details>`;
   }
   function open(next = tab) {
     tab = next;
@@ -177,6 +190,14 @@ export function createRewardUI(ctx) {
       "Logros y tienda",
       `${tabs(w)}${tab === "achievements" ? achievements(w) : tab === "store" ? store(w) : collection(w)}`,
     );
+  }
+  function openInventory() {
+    collectionMode = "owned";
+    inventoryQuery = "";
+    inventoryRarity = "all";
+    inventoryTheme = "all";
+    inventoryLimit = 24;
+    open("collection");
   }
   function persistEquip(title) {
     if (title && !owned().has(title)) return;
@@ -187,7 +208,8 @@ export function createRewardUI(ctx) {
       return;
     }
     ctx.render();
-    open("collection");
+    if (tab !== "collection" || collectionMode !== "owned") openInventory();
+    else open("collection");
   }
   function click(e) {
     const b = e.target.closest('[data-action^="reward-"]');
@@ -209,7 +231,23 @@ export function createRewardUI(ctx) {
     }
     if (action === "reward-achievements") open("achievements");
     if (action === "reward-store") open("store");
-    if (action === "reward-tab") open(b.dataset.tab);
+    if (action === "reward-tab") {
+      if (b.dataset.tab === "collection") openInventory();
+      else open(b.dataset.tab);
+    }
+    if (action === "reward-inventory") openInventory();
+    if (action === "reward-inventory-mode") {
+      collectionMode = b.dataset.mode === "catalog" ? "catalog" : "owned";
+      inventoryLimit = 24;
+      open("collection");
+    }
+    if (action === "reward-clear-inventory") {
+      inventoryQuery = "";
+      inventoryRarity = "all";
+      inventoryTheme = "all";
+      inventoryLimit = 24;
+      open("collection");
+    }
     if (action === "reward-equip") persistEquip(b.dataset.title);
     if (action === "reward-unequip") persistEquip(null);
     if (action === "reward-log") {
