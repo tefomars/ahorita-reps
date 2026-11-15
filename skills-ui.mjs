@@ -1,3 +1,4 @@
+import { effortFields, readEffort } from "./game-core.mjs";
 import { favoriteSignature, appendShortcut } from "./journey-core.mjs";
 import {
   skillCategories,
@@ -135,7 +136,7 @@ export function createSkillsUI(ctx) {
         ? ""
         : d.movement,
       custom,
-    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${favorite ? (d.metric === "seconds" ? "Botón habitual · segundos" : "Botón habitual · reps") : d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" ${d.outcome === "attempt" ? "disabled" : "required"} value="${d.outcome === "attempt" ? "" : (d.value ?? "")}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><div data-attempt-counter ${d.outcome === "attempt" ? "hidden" : ""}>${counterFields(d)}</div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><div class="weight-field"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label>${ctx.weightButtons(d, d.weight)}</div><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details><details class="skill-notes"><summary>Notas${favorite ? "" : " e intentos"}</summary>${favorite ? "" : `<label class="check-label"><input type="checkbox" name="attempt" ${d.outcome === "attempt" ? "checked" : ""}> Intento no completado</label><p class="note">Guarda la práctica sin sumar reps, segundos ni récords.</p>`}<label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
+    )}${metric}<div class="skill-form-grid">${customSelect("variation", "Variante", vars, d.variation)}<label class="field skill-value"><span data-skill-value-label>${favorite ? (d.metric === "seconds" ? "Botón habitual · segundos" : "Botón habitual · reps") : d.metric === "seconds" ? "Segundos de esta serie" : skillCounterGroup(d) === "legs" && (d.counterSide ?? inferCounterSide(d)) === "both" ? "Reps por pierna" : "Reps de esta serie"}</span><input name="value" type="number" inputmode="${d.metric === "seconds" ? "decimal" : "numeric"}" step="${d.metric === "seconds" ? "0.1" : "1"}" min="${d.metric === "seconds" ? "0.1" : "1"}" max="${d.metric === "seconds" ? "36000" : "10000"}" ${d.outcome === "attempt" ? "disabled" : "required"} value="${d.outcome === "attempt" ? "" : (d.value ?? "")}" placeholder="${d.metric === "seconds" ? "Ej. 12.5" : "Ej. 8"}"></label></div><div data-attempt-counter ${d.outcome === "attempt" ? "hidden" : ""}>${counterFields(d)}</div><details class="skill-equipment"><summary><strong>Equipo, lastre y fecha</strong><span>${esc(d.apparatus)} · ${load(d.weight)} · ${esc(d.support)}${d.day !== today() ? " · " + esc(shortDate(d.day)) : ""}</span></summary>${customSelect("apparatus", "Equipo", c.apparatus, d.apparatus)}<div class="skill-form-grid"><div class="weight-field"><label class="field">Lastre añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" required value="${d.weight}"></label>${ctx.weightButtons(d, d.weight)}</div><label class="field">Asistencia<select name="support">${options(skillSupports, d.support)}</select></label></div><label class="field" data-skill-support ${d.support === "Libre" ? "hidden" : ""}>Detalle de la asistencia<input name="supportNote" maxlength="100" value="${esc(d.supportNote)}" ${d.support === "Libre" ? "" : "required"} placeholder="Ej. banda verde, apoyo de pies en caja"></label><label class="field">Fecha<input name="day" type="date" required max="${today()}" value="${d.day}"></label><p class="note">0 lb = sin lastre. Registra el peso añadido total.</p></details>${effortFields(d, !favorite && d.metric === "reps")}<details class="skill-notes"><summary>Notas${favorite ? "" : " e intentos"}</summary>${favorite ? "" : `<label class="check-label"><input type="checkbox" name="attempt" ${d.outcome === "attempt" ? "checked" : ""}> Intento no completado</label><p class="note">Guarda la práctica sin sumar reps, segundos ni récords.</p>`}<label class="field">Notas<textarea name="notes" maxlength="300" rows="2" placeholder="Ej. técnica o sensaciones de esta serie">${esc(d.notes)}</textarea></label></details>`;
   }
   function readForm(form) {
     const f = new FormData(form),
@@ -152,6 +153,7 @@ export function createSkillsUI(ctx) {
           ? skillCatalog[family]?.movements.find((x) => x.name === movement)
           : null;
     return {
+      ...readEffort(form),
       family,
       movement,
       variation: read("variation"),
@@ -290,8 +292,17 @@ export function createSkillsUI(ctx) {
       if (index < 0) throw Error("La serie ya no está disponible.");
       state().skills.entries[index] = entry;
     } else state().skills.entries.push(entry);
-    const { day, value, id, at, sessionId, sessionStepId, outcome, ...config } =
-      entry;
+    const {
+      day,
+      value,
+      id,
+      at,
+      sessionId,
+      sessionStepId,
+      outcome,
+      durationSeconds,
+      ...config
+    } = entry;
     state().skills.selected = { ...config, notes: "" };
     if (!editingId)
       draft = {
@@ -492,6 +503,7 @@ export function createSkillsUI(ctx) {
         sessionId,
         sessionStepId,
         outcome,
+        durationSeconds,
         ...config
       } = data,
       favorite = { ...config, id: editingId ?? crypto.randomUUID() };
@@ -583,6 +595,7 @@ export function createSkillsUI(ctx) {
       sessionId,
       sessionStepId,
       outcome,
+      durationSeconds,
       ...data
     } = config;
     draft = { ...counterDefaults(data), day: today(), value: "", notes: "" };
@@ -849,6 +862,8 @@ export function createSkillsUI(ctx) {
         if (name === "family") {
           const fresh = defaultSkill(e.target.value);
           Object.assign(d, fresh);
+          delete d.difficulty;
+          delete d.durationSeconds;
           d.value = "";
         } else if (name === "movement") {
           const c = skillCatalog[d.family],

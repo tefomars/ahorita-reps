@@ -227,3 +227,13 @@ Para actualizar GitHub Pages, sube los archivos a la rama `main` del repositorio
 Para moverla a otro dominio o alojamiento, publica estos mismos archivos como sitio estático por HTTPS, **exporta primero tu JSON desde la dirección anterior**, instala o abre la nueva dirección e importa la copia. Los datos no se trasladan automáticamente entre direcciones.
 
 El código es tuyo para conservarlo y modificarlo. El funcionamiento futuro del alojamiento depende de tu cuenta y de las condiciones de GitHub; la app no incorpora suscripciones, pagos ni consumo de APIs.
+
+## Niveles, experiencia y logros
+
+La tarjeta de nivel en **Hoy** abre tu XP, reto semanal, logros y desglose de las últimas series. Todo tu historial cuenta; los niveles no tienen tope. El primer salto cuesta 100 XP y cada siguiente cuesta 100 más. No se pierden puntos por descansar.
+
+Las series completadas dan puntos por reps o segundos, multiplicados por dificultad y por lastre. La dificultad automática distingue progresiones como tuck, advanced tuck y full en las principales palancas. En **Dificultad y duración · opcional** puedes elegir una dificultad personal de 1–5. Los registros nuevos conservan su ajuste; puedes corregir una serie en el historial. Los holds usan su tiempo registrado. Para reps puedes indicar duración de la serie (hasta 3600 s); sin ella, se usa una estimación de **3 s por rep** identificada en el desglose. Los botones rápidos usan esa estimación.
+
+Reglas de juego: reps × 2 + duración / 15, o segundos de hold / 3; dificultad ×1 a ×2; bonificación por peso = min(1, log2(1 + lb/25)/3), aplicada como multiplicador ×1 a ×2. +20 XP por día con actividad, incluidos intentos, y +50 por semana con práctica en tres días distintos (lunes a domingo). Los intentos no dan puntos de serie. Crear ejercicios favoritos o planes, cambiar libras o abrir la app no da puntos. El redondeo se aplica al total para reducir incentivos de dividir series.
+
+Editar, borrar, importar o deshacer recalcula XP y logros desde los registros originales. Los logros de series y días activos son personales; no hay clasificación pública ni pagos. La XP es una regla de motivación, **no una medida fisiológica ni una pauta de entrenamiento**. La duración y dificultad se incluyen en el respaldo.

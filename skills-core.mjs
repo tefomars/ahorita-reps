@@ -181,6 +181,14 @@ export function validSkillConfig(e) {
   return !!(
     e &&
     Object.hasOwn(skillCatalog, e.family) &&
+    (e.difficulty === undefined ||
+      (Number.isInteger(e.difficulty) &&
+        e.difficulty >= 1 &&
+        e.difficulty <= 5)) &&
+    (e.durationSeconds === undefined ||
+      (Number.isFinite(e.durationSeconds) &&
+        e.durationSeconds > 0 &&
+        e.durationSeconds <= 3600)) &&
     (e.outcome === undefined || ["complete", "attempt"].includes(e.outcome)) &&
     (e.sessionId === undefined || short(e.sessionId, 100)) &&
     (e.sessionStepId === undefined || short(e.sessionStepId, 100)) &&
@@ -303,6 +311,8 @@ export function allJournalEntries(s, today) {
         supportNote: "",
         weight: e.weight,
         notes: "",
+        difficulty: e.difficulty,
+        durationSeconds: e.durationSeconds,
       });
   }
   return list

@@ -72,6 +72,14 @@ export function validateEntry(e) {
   return (
     e &&
     typeof e.id === "string" &&
+    (e.difficulty === undefined ||
+      (Number.isInteger(e.difficulty) &&
+        e.difficulty >= 1 &&
+        e.difficulty <= 5)) &&
+    (e.durationSeconds === undefined ||
+      (Number.isFinite(e.durationSeconds) &&
+        e.durationSeconds > 0 &&
+        e.durationSeconds <= 3600)) &&
     (e.apparatus === undefined ||
       (typeof e.apparatus === "string" && e.apparatus.length <= 80)) &&
     (e.variation === undefined ||

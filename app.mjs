@@ -1,3 +1,5 @@
+import { gameSummary, effortFields, readEffort } from "./game-core.mjs";
+import { createGameUI } from "./game-ui.mjs";
 import { createWeightUI, rememberWeights } from "./weight-shortcuts.mjs";
 import { matchesSkillSearch } from "./exercise-library.mjs";
 import { createTrainingUI } from "./training-ui.mjs";
@@ -78,6 +80,15 @@ let progressWeek = startOfWeek(activeDay),
   recordGroup = "all",
   progressTab = "summary",
   detailOpen = false;
+let lastGame = gameSummary(state, activeDay),
+  gameGain = 0,
+  gameLevelUp = false;
+const gameUI = createGameUI({
+  getState: () => state,
+  getToday: () => activeDay,
+  openSheet,
+  esc,
+});
 const weightUI = createWeightUI({
   getState: () => state,
   getToday: () => activeDay,
@@ -182,6 +193,10 @@ function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
     storageError = false;
+    const next = gameSummary(state, activeDay);
+    gameGain = next.xp - lastGame.xp;
+    gameLevelUp = next.level > lastGame.level;
+    lastGame = next;
     return true;
   } catch {
     storageError = true;
@@ -200,6 +215,11 @@ function current() {
   return ensureDay(state, activeDay);
 }
 function toast(message, undo) {
+  if (gameGain > 0) {
+    message += ` · +${gameGain} XP${gameLevelUp ? " · ¡Nivel " + lastGame.level + "!" : ""}`;
+    gameGain = 0;
+    gameLevelUp = false;
+  }
   clearTimeout(timer);
   undoAction = undo;
   $("#toast").innerHTML =
@@ -251,7 +271,7 @@ function today() {
       (g) =>
         d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g],
     ).length;
-  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${favoriteSection()}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${timerSection()}${trainingUI.dashboard()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
+  return `<div class="intro"><div><p class="eyebrow">${esc(dateLabel(activeDay))}</p><h1>Cada rep cuenta<span style="color:var(--push)">.</span></h1><p>Un toque. Una serie más cerca.</p></div><div class="day-summary"><div class="dots">${groups.map((g) => `<b class="${d.goals[g] > 0 && dayTotals(state, activeDay, g).count >= d.goals[g] ? "done" : ""}"></b>`).join("")}</div>${done}/${groups.filter((g) => d.goals[g] > 0).length} metas</div></div>${storageError ? '<p class="note danger" role="alert">El almacenamiento no está disponible o la copia guardada no se pudo leer. Exporta tus datos antes de cerrar; no se reemplazará una copia dañada hasta que registres cambios.</p>' : ""}${gameUI.card()}${favoriteSection()}<div class="cards">${groups.map((g) => card(g, d)).join("")}</div>${timerSection()}${trainingUI.dashboard()}${backupBanner()}<div class="section-heading"><h2>Lo que llevas hoy</h2><span>${d.entries.length + skillContributions(state, activeDay).length} series</span></div>${d.entries.length ? entries(d.entries, activeDay) : skillContributions(state, activeDay).length ? "" : entries([], activeDay)}${skillsUI.daySection(activeDay, { counterOnly: true })}`;
 }
 function card(g, d) {
   const t = dayTotals(state, activeDay, g),
@@ -328,10 +348,10 @@ function openSheet(title, body) {
   s.innerHTML = `<div class="sheet-head"><h2 id="sheet-title">${esc(title)}</h2><button class="close" data-close aria-label="Cerrar">×</button></div>${body}`;
   s.showModal();
 }
-function configForm(g, edit) {
+function configForm(g, edit, duration = false) {
   const p = edit ?? state.selected[g],
     opts = [...new Set([...exercises[g], p.exercise])];
-  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label>${weightUI.buttons(shortcutConfig({ kind: "base", item: { ...p, group: g } }), p.weight)}<p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}<details class="skill-equipment"><summary>Equipo y variante para Progreso</summary><label class="field">Equipo<input name="apparatus" maxlength="80" value="${esc(p.apparatus ?? "")}" placeholder="Ej. Barra, Anillas, Suelo"></label><label class="field">Variante<input name="variation" maxlength="80" value="${esc(p.variation ?? "")}" placeholder="Vacío = estándar o lado elegido"></label><p class="note">Usa el mismo nombre de equipo y variante en Entrenar para unir sus marcas.</p></details>`;
+  return `<label class="field">Ejercicio<select name="exercise">${opts.map((x) => `<option ${x === p.exercise ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__custom">Otro ejercicio…</option></select></label><label class="field" id="custom-name-field" hidden>Nombre del ejercicio<input name="customName" maxlength="80" placeholder="Ej. Ring pushups"></label><label class="field">Peso añadido total · lb<input name="weight" type="number" inputmode="decimal" min="0" max="2000" step="0.5" value="${p.weight}" required></label>${weightUI.buttons(shortcutConfig({ kind: "base", item: { ...p, group: g } }), p.weight)}<p class="note">0 = sin peso añadido. Suma el peso de ambas mancuernas.</p>${g === "legs" ? `<label class="field">Lado<select name="side"><option value="both" ${p.side === "both" ? "selected" : ""}>Ambas · reps por pierna</option><option value="left" ${p.side === "left" ? "selected" : ""}>Solo izquierda</option><option value="right" ${p.side === "right" ? "selected" : ""}>Solo derecha</option></select></label>` : ""}<details class="skill-equipment"><summary>Equipo y variante para Progreso</summary><label class="field">Equipo<input name="apparatus" maxlength="80" value="${esc(p.apparatus ?? "")}" placeholder="Ej. Barra, Anillas, Suelo"></label><label class="field">Variante<input name="variation" maxlength="80" value="${esc(p.variation ?? "")}" placeholder="Vacío = estándar o lado elegido"></label><p class="note">Usa el mismo nombre de equipo y variante en Entrenar para unir sus marcas.</p></details>${effortFields(p, duration)}`;
 }
 function add(g, reps, preset = null, meta = {}) {
   rollover();
@@ -343,7 +363,16 @@ function add(g, reps, preset = null, meta = {}) {
     key = activeDay;
   const { id: presetId, day: presetDay, ...config } = p;
   const entry = trainingUI.decorate(
-    { ...config, id, group: g, reps, at: Date.now() },
+    {
+      ...config,
+      ...(meta.durationSeconds
+        ? { durationSeconds: meta.durationSeconds }
+        : {}),
+      id,
+      group: g,
+      reps,
+      at: Date.now(),
+    },
     "base",
     meta,
   );
@@ -405,6 +434,7 @@ function formValues(form, g) {
   if (!exercise) throw Error("Escribe el nombre del ejercicio.");
   return {
     exercise,
+    ...readEffort(form, false),
     weight: Number(f.get("weight")),
     side: g === "legs" ? String(f.get("side")) : "both",
     apparatus: String(f.get("apparatus") ?? "").trim(),
@@ -422,7 +452,7 @@ $("#main").addEventListener("click", (e) => {
     const custom = a === "custom";
     openSheet(
       `${custom ? "Sumar a" : "Preparar"} ${labels[g]}`,
-      `<form id="series-form" data-group="${g}" data-mode="${a}">${custom ? '<label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required autofocus></label>' : ""}${configForm(g)}<button class="primary wide">${custom ? "Sumar repeticiones" : "Guardar selección"}</button></form>`,
+      `<form id="series-form" data-group="${g}" data-mode="${a}">${custom ? '<label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required autofocus></label>' : ""}${configForm(g, null, custom)}<button class="primary wide">${custom ? "Sumar repeticiones" : "Guardar selección"}</button></form>`,
     );
   }
   if (a === "goal") {
@@ -437,7 +467,7 @@ $("#main").addEventListener("click", (e) => {
     );
     openSheet(
       "Editar serie",
-      `<form id="edit-form" data-day="${b.dataset.day}" data-id="${esc(entry.id)}" data-group="${entry.group}"><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required value="${entry.reps}"></label>${configForm(entry.group, entry)}<div class="sheet-actions"><button type="button" class="secondary danger" data-delete="${esc(entry.id)}" data-day="${b.dataset.day}">Eliminar</button><button class="primary">Guardar</button></div></form>`,
+      `<form id="edit-form" data-day="${b.dataset.day}" data-id="${esc(entry.id)}" data-group="${entry.group}"><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" step="1" required value="${entry.reps}"></label>${configForm(entry.group, entry, true)}<div class="sheet-actions"><button type="button" class="secondary danger" data-delete="${esc(entry.id)}" data-day="${b.dataset.day}">Eliminar</button><button class="primary">Guardar</button></div></form>`,
     );
   }
   if (a === "history-day") {
@@ -505,7 +535,7 @@ document.addEventListener("submit", (e) => {
     if (id === "series-form") {
       state.selected[g] = formValues(f, g);
       if (f.dataset.mode === "custom") {
-        add(g, Number(fd.get("reps")));
+        add(g, Number(fd.get("reps")), null, readEffort(f));
       } else {
         save();
         render();
@@ -517,7 +547,13 @@ document.addEventListener("submit", (e) => {
       const entry = state.days[f.dataset.day].entries.find(
           (x) => x.id === f.dataset.id,
         ),
-        next = { ...entry, ...formValues(f, g), reps: Number(fd.get("reps")) };
+        next = {
+          ...entry,
+          ...formValues(f, g),
+          difficulty: readEffort(f).difficulty,
+          durationSeconds: readEffort(f).durationSeconds,
+          reps: Number(fd.get("reps")),
+        };
       if (!validateEntry(next)) throw Error("Revisa los valores de la serie.");
       Object.assign(entry, next);
       save();
@@ -710,7 +746,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v11");
+    const cache = await caches.open("ahorita-v12");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8
@@ -786,7 +822,7 @@ function favoriteSection() {
       "",
     )}<button class="custom" data-action="shortcut-custom" data-key="${esc(f.key)}" aria-label="Otra cantidad de ${esc(c.movement)}">···</button></div><p class="exercise-counter-link">${m.group ? `Cada rep suma a ${labels[m.group]}${m.group === "legs" ? " · " + sideLabel(f.kind === "base" ? f.item.side : (f.item.counterSide ?? "both")) : ""}` : c.metric === "seconds" ? "Holds en segundos · sin convertir a reps" : "Sin contador de grupo · asígnalo en ···"}<span>${m.entries.length} ${m.entries.length === 1 ? "serie" : "series"}</span></p></article></section>`;
 }
-function logShortcut(f, value) {
+function logShortcut(f, value, effort = {}) {
   if (!f) return;
   const seconds = f.kind === "skill" && f.item.metric === "seconds";
   if (
@@ -797,8 +833,9 @@ function logShortcut(f, value) {
     (seconds && Math.abs(value * 10 - Math.round(value * 10)) > 1e-7)
   )
     throw Error("Revisa la cantidad de esta serie.");
-  if (f.kind === "base") add(f.item.group, value, f.item);
-  else skillsUI.logPreset({ ...f.item, value });
+  if (f.kind === "base")
+    add(f.item.group, value, { ...f.item, ...effort }, effort);
+  else skillsUI.logPreset({ ...f.item, ...effort, value });
 }
 function setShortcutWeight(f, value, announce = true) {
   rememberWeights(state, shortcutConfig(f), f.item.weight, value);
@@ -815,7 +852,7 @@ function shortcutSheet(f, mode) {
     load = mode === "load";
   openSheet(
     load ? "Cambiar lastre" : "Registrar una serie",
-    `<p class="note">${esc(shortcutTitle(f))} · ${esc(c.variation)}</p><form id="shortcut-form" data-key="${esc(f.key)}" data-mode="${mode}"><label class="field">${load ? "Lastre añadido total · lb" : seconds ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" required type="number" inputmode="${load || seconds ? "decimal" : "numeric"}" min="${load ? 0 : seconds ? 0.1 : 1}" max="${load ? 2000 : seconds ? 36000 : 10000}" step="${load ? 0.5 : seconds ? 0.1 : 1}" value="${load ? f.item.weight : ""}" autofocus></label>${load ? weightUI.buttons(c, f.item.weight, { target: "value" }) : ""}<p class="note">${load ? "Se usa para las próximas series de este ejercicio. Las series guardadas conservan su peso." : weightLabel(f.item.weight) + ". Se guarda una sola serie y actualiza tus metas, historial y marcas."}</p><button class="primary wide">${load ? "Usar este lastre" : "Guardar serie"}</button></form>`,
+    `<p class="note">${esc(shortcutTitle(f))} · ${esc(c.variation)}</p><form id="shortcut-form" data-key="${esc(f.key)}" data-mode="${mode}"><label class="field">${load ? "Lastre añadido total · lb" : seconds ? "Segundos de esta serie" : "Reps de esta serie"}<input name="value" required type="number" inputmode="${load || seconds ? "decimal" : "numeric"}" min="${load ? 0 : seconds ? 0.1 : 1}" max="${load ? 2000 : seconds ? 36000 : 10000}" step="${load ? 0.5 : seconds ? 0.1 : 1}" value="${load ? f.item.weight : ""}" autofocus></label>${load ? weightUI.buttons(c, f.item.weight, { target: "value" }) : ""}<p class="note">${load ? "Se usa para las próximas series de este ejercicio. Las series guardadas conservan su peso." : weightLabel(f.item.weight) + ". Se guarda una sola serie y actualiza tus metas, historial y marcas."}</p>${load ? "" : effortFields(f.item, seconds ? false : true)}<button class="primary wide">${load ? "Usar este lastre" : "Guardar serie"}</button></form>`,
   );
 }
 function allShortcutChoices() {
@@ -855,7 +892,7 @@ function openBaseLog(e) {
   const f = baseFromRecord(e);
   openSheet(
     "Registrar otra serie",
-    `<form id="series-form" data-group="${f.group}" data-mode="custom"><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" required value="${f.reps}"></label>${configForm(f.group, f)}<button class="primary wide">Sumar repeticiones</button></form>`,
+    `<form id="series-form" data-group="${f.group}" data-mode="custom"><label class="field">Repeticiones<input name="reps" type="number" inputmode="numeric" min="1" max="10000" required value="${f.reps}"></label>${configForm(f.group, f, true)}<button class="primary wide">Sumar repeticiones</button></form>`,
   );
 }
 function openProgress(options = {}) {
@@ -1265,7 +1302,7 @@ document.addEventListener("submit", (e) => {
       )
         throw Error("Usa un peso entre 0 y 2000 lb, en pasos de 0.5.");
       setShortcutWeight(f, value);
-    } else logShortcut(f, value);
+    } else logShortcut(f, value, readEffort(form));
     $("#sheet").close();
   } catch (err) {
     toast(err.message);
