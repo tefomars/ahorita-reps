@@ -84,7 +84,13 @@ export function gameSummary(s, today) {
     completedWeeks = [...weeks.values()].filter((x) => x.size >= 3).length;
   const xp = Math.floor(seriesXP + activeDays * 20 + completedWeeks * 50),
     weekReward = weekDays >= 3 ? 50 : 0,
-    todayXP = Math.floor((days.get(today) ?? 0) + (days.has(today) ? 20 : 0));
+    todayXP = Math.floor(
+      (days.get(today) ?? 0) +
+        (days.has(today) ? 20 : 0) +
+        (weekDays >= 3 && [...weeks.get(monday(today))].sort()[2] === today
+          ? 50
+          : 0),
+    );
   const badges = [
     ["Primera serie", completed, 1],
     ["10 series", completed, 10],

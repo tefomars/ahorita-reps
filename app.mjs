@@ -746,7 +746,7 @@ async function offlineStatus() {
   const el = $("#offline-info");
   if (!el) return;
   try {
-    const cache = await caches.open("ahorita-v12");
+    const cache = await caches.open("ahorita-v13");
     const keys = await cache.keys();
     el.textContent =
       keys.length >= 8

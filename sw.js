@@ -1,4 +1,4 @@
-const CACHE = "ahorita-v12";
+const CACHE = "ahorita-v13";
 const ASSETS = [
   "./",
   "./index.html",
