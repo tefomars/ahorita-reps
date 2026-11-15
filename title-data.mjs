@@ -192,6 +192,139 @@ group(
   "Deepwoken",
 );
 group(
+  "deepwoken",
+  "common",
+  "food",
+  "Comida sencilla o bebida cotidiana; rango editorial de Reps.",
+  "Bread|Cake|Cheese|Cooked Egg|Cooked Fish|Cooked Squid|Dried Seaweed|Fruit Salad|Mushroom Soup|Noodles|Omelette|Redd Juice|Sticky Bun|Tankard of Ongo Juice|Tankard of Plumfruit Juice",
+);
+group(
+  "deepwoken",
+  "rare",
+  "food",
+  "Plato preparado o receta con varios ingredientes; rango editorial de Reps.",
+  "Calamari|Candied Fruit|Crab Pizza|Crab Stuffed Browncaps|Fish Omelette|Fish Stew|Fruit Cake|Glazed Fish|Grilled Cheese|Kyrsdog|Magic Bean|Megurger|Mushroom Bisque|Mushroom Omelette|Plain Boiled Brined Aged Fermented Hotdog|Plumfruit Muffin|Pumpkin Pie|Sauteed Scallops|Seafood Boil|Seafood Surprise|Squelcap Pilaf|Sushi|Urchin Stew|Scholar's Brew",
+);
+group(
+  "deepwoken",
+  "rare",
+  "food",
+  "Dulce o consumible especial; rareza editorial, no probabilidad oficial de obtención.",
+  "Candy|Candy Suncorn|Toffee|YUM YUM BAR|Sweetgourd|Ambrosial Chum",
+);
+group(
+  "deepwoken",
+  "epic",
+  "food",
+  "Comida ligada a ingredientes de criaturas mayores; rango editorial de Reps.",
+  "Dread Filet|Heavy Steak|Primal Cutlet|Grilled Parasol Brain",
+);
+group(
+  "deepwoken",
+  "common",
+  "ingredient",
+  "Fruta o material de recolección usado en recetas.",
+  "Calabash|Redd|Ongo|Pomar|Plumfruit|Beeswax|Bamboo Bundle|Marram Grass|Egg|Sap|Fish Meat",
+);
+group(
+  "deepwoken",
+  "rare",
+  "ingredient",
+  "Recolección de zonas particulares o ingrediente de criaturas; rango editorial.",
+  "Glumfig|Alestrian Coral|Scallop|Urchin|Thresher Egg|Crustacean Meat|Arkasid Pupa",
+);
+group(
+  "deepwoken",
+  "common",
+  "ore",
+  "Mineral básico de fabricación.",
+  "Rock|Coal|Iron|Gold",
+);
+group(
+  "deepwoken",
+  "rare",
+  "ore",
+  "Mineral de fabricación más especializado; rango editorial.",
+  "Erisore|Irithine|Astruline|Umbrite",
+);
+group(
+  "deepwoken",
+  "rare",
+  "monster",
+  "Criatura o guardián de exploración; rango editorial de Reps.",
+  "Brainsucker|Carbuncle|Rock Golem|Stone Knight|Stonespark|Arkasid|Mudskipper Brute|Mudskipper Knight|Bloatskipper|Sworn Angel|Hollow Angel|Diver Husk",
+);
+group(
+  "deepwoken",
+  "epic",
+  "monster",
+  "Variante peligrosa o criatura de progresión avanzada; rango editorial de Reps.",
+  "Crimson Terrapod|Deep Widow|Blizzard Knight|Hive Construct|Rogue Construct|Glacial Lionfish|King Gigamed|Fury Nautilodaunt|Nautilodaunt Officiate|Ghost Bounder|Nightmare Thresher|Kyrsgarde Brute|Kyrsgarde Crawler|Kyrsgarde Lancer|Kyrsgarde Sniper|Golem Prime|Immortal Guardian|Nightmare Immortal Guardian|Ministry Necromancer|Maljuror|Grudge|Semblance|Ghost",
+);
+group(
+  "deepwoken",
+  "legendary",
+  "monster",
+  "Variante excepcional o guardián destacado; rango editorial de Reps.",
+  "Exotic Megalodaunt|Prime Megalodaunt|Moon Knight|Parliament",
+);
+group(
+  "deepwoken",
+  "legendary",
+  "boss",
+  "Boss o amenaza mayor; rango editorial de Reps.",
+  "Dread Serpent|Elder Primadon, The Titan Warlord|The Doom of Caeranthil|Interluminary Parasol",
+);
+group(
+  "deepwoken",
+  "rare",
+  "drop",
+  "Material obtenido de criaturas; rango editorial de Reps.",
+  "Megalodaunt Hide|Megalodaunt Coral|Strange Claw|Terrapod Shell|Thresher Spine|Thresher Talon|Lionfish Scale",
+);
+group(
+  "deepwoken",
+  "epic",
+  "drop",
+  "Material de criaturas avanzadas; rango editorial de Reps.",
+  "Exotic Hide|King Thresher Spine|Dark Feather|Void Feather|Worn Cog|Broken Gatling Gun|Enforcer Eye|Nautilodaunt Beak|Odd Tentacle|Giant Femur|Bounder Claw|Frozen Membrane|Kyrsan Schematic",
+);
+group(
+  "deepwoken",
+  "epic",
+  "mantra modifier",
+  "Modificador para personalizar mantras; rango editorial de Reps.",
+  "Cloudstone|Stratus Stone|Crystal Lens|Perfect Lens|Aeon Logstone|Eternal Logstone|Drift Shard|Rush Shard|Amnesic Driftwood|Glass Stone|Magnifying Stone|Vibrant Gem|Blast Spark|Magnet Spark|Multiplying Spark|Reversal Spark|Round Spark|Spring Spark|Tornado Spark",
+);
+group(
+  "deepwoken",
+  "epic",
+  "deep gem",
+  "Gema para modificar mantras; rango editorial de Reps.",
+  "Aegis Gem|Blessed Gem|Bloodless Gem|Blue Gem|Insignia Gem|Wayward Gem|Wind Gem",
+);
+group(
+  "deepwoken",
+  "epic",
+  "primordial lotus",
+  "Ingrediente para entrenar atributos; rango editorial de Reps.",
+  "Hellfire Lotus|Empyrean Lotus|Zephyr Lotus|Brilliant Lotus|Skyvalor Lotus|Miasmic Lotus",
+);
+group(
+  "deepwoken",
+  "rare",
+  "elemental ingredient",
+  "Ingrediente asociado a una attunement; rango editorial de Reps.",
+  "Dying Embers|Frigid Prism|Spark Gland|Gale Stone|Umbral Obsidian|Heartstar",
+);
+group(
+  "deepwoken",
+  "rare",
+  "npc",
+  "Personaje vinculado a la cocina y sus encargos; rango editorial de Reps.",
+  "Chef Buongustino|Chef Odiolavoro",
+);
+group(
   "minecraft",
   "common",
   "item",

@@ -247,13 +247,17 @@ En **Hoy → nivel → Logros por ejercicio** hay **294 hitos de técnica y cons
 - Muscle-ups estrictos y con kipping tienen hitos distintos; también hay handstand libre, human flag completo, L-sit completo, dragon flag y pistols por lado, además de constancia.
 - Solo series completadas sin asistencia cuentan para los logros de técnica. Los intentos sí pueden aportar a los días de actividad. Holds y reps permanecen separados. «Preparar registro» abre el formulario con la configuración, sin guardar una serie.
 
+En **Logros**, «Más cercanos» ordena globalmente por porcentaje completado, con pendientes primero al mostrar todos. Cada ficha indica exactamente cuánto falta en reps, segundos, libras, series, días o volumen con lastre. También puedes ordenar por ejercicio o mayor XP. «Filtros y criterios» reúne familia y tipo sin llenar la vista inicial de controles; la búsqueda y los filtros se combinan.
+
+Las etiquetas **Técnica** usan una escala editorial orientativa de Inicial 1/5 a Élite 5/5 según movimiento, variante y objetivo; la asistencia reduce un grado y los movimientos sin criterio quedan sin clasificar. No leen la dificultad manual de una serie ni alteran recompensas o requisitos. **Dedicación** distingue práctica acumulada, mejor día, series, días y volumen con lastre sin confundirlos con dificultad técnica. «Te faltan» expresa la distancia al hito de esa ruta; en un récord de serie se necesita alcanzar el objetivo en una sola serie.
+
 **Monedas recurrentes:** +5 por cada día activo, +10 por nivel a partir del 2, +25 extra en los niveles 5, 10, 15… y +5 por cada cuarto completado de la meta diaria de cada grupo (25 %, 50 %, 75 %, 100 %). Son hasta 20 por grupo y día; los grupos con meta 0 no dan premios por meta. Legs usa el contador por lado, igual que Hoy. Se usa la meta guardada para ese día y se recalcula si la editas. Una misma fracción del mismo grupo y día no vuelve a pagarse por recargar, importar o alternar la meta.
 
 Las ganancias se calculan desde el historial; no hay un botón de cobrar que pueda duplicarlas. Los gastos son recibos guardados con IDs únicos. Corregir series o metas puede reducir el saldo, incluso por debajo de cero si ya gastaste las monedas; conservas los títulos y las siguientes ganancias cubren el saldo antes de otra apertura. No es una deuda de dinero real.
 
 ## Tienda, cofres y títulos
 
-El **icono de cofre junto al nivel** abre la tienda; también está en el panel del nivel. El catálogo incluido tiene **182 títulos directos**, de los cuales **126 son de Deepwoken**. Minecraft y Deepwoken están en inglés: nombres de objetos, criaturas, NPCs, oaths, bells y lugares, sin frases decorativas inventadas. Escoge un cofre mixto o un tema concreto. Cada apertura cuesta **100 monedas del juego** y entrega un título. Si se repite, devuelve **25 monedas**. Equipar o quitar un título es gratis y aparece junto al nivel en Hoy.
+El **icono de cofre junto al nivel** abre la tienda; también está en el panel del nivel. El catálogo incluido tiene **360 títulos directos**, de los cuales **304 son de Deepwoken** (49 de comida, además de ingredientes, mobs, materiales y modificadores). Minecraft y Deepwoken están en inglés: nombres de objetos, criaturas, NPCs, oaths, bells y lugares, sin frases decorativas inventadas. Escoge un cofre mixto o un tema concreto. Cada apertura cuesta **100 monedas del juego** y entrega un título. Si se repite, devuelve **25 monedas**. Equipar o quitar un título es gratis y aparece junto al nivel en Hoy.
 
 | Rareza        | Probabilidad por apertura |
 | ------------- | ------------------------: |

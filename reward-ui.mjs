@@ -3,6 +3,7 @@ import { wallet, buyChest, CHEST_PRICE } from "./economy-core.mjs";
 import { RARITIES, THEMES } from "./title-catalog.mjs";
 import { skillCatalog } from "./skills-core.mjs";
 import { normalizeSearch } from "./exercise-library.mjs";
+import { achievementInfo, compareAchievements } from "./achievement-view.mjs";
 export function createRewardUI(ctx) {
   const s = () => ctx.getState(),
     today = () => ctx.getToday(),
@@ -11,6 +12,9 @@ export function createRewardUI(ctx) {
     family = "all",
     profileFilter = null,
     status = "next",
+    order = "nearest",
+    achievementKind = "all",
+    filtersOpen = false,
     query = "",
     theme = "all",
     inventoryRarity = "all",
@@ -43,6 +47,8 @@ export function createRewardUI(ctx) {
     const results = w.achievements.achievements.filter(
       (a) =>
         (family === "all" || a.family === family) &&
+        (achievementKind === "all" ||
+          achievementInfo(a).kind === achievementKind) &&
         (!profileFilter ||
           a.profileId === profileFilter.id ||
           (a.family === profileFilter.family &&
@@ -58,19 +64,14 @@ export function createRewardUI(ctx) {
             (skillCatalog[a.family]?.name ?? "actividad"),
         ).includes(normalizeSearch(query)),
     );
-    results.sort(
-      (a, b) =>
-        a.family.localeCompare(b.family) ||
-        b.percent - a.percent ||
-        a.target - b.target,
-    );
+    results.sort((a, b) => compareAchievements(a, b, order));
     return `<p class="quiet" role="status">${results.length} logros${status === "next" ? " por conquistar" : ""}</p><div class="achievement-list">${
       results
         .slice(0, achievementLimit)
-        .map(
-          (a) =>
-            `<article class="achievement ${a.earned ? "earned" : ""}"><div class="mini-heading"><span class="skill-family-label">${esc(skillCatalog[a.family]?.name ?? "Constancia")}</span><b>${a.earned ? "✓" : "◇"}</b></div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p><div class="progress"><i style="width:${a.percent}%"></i></div><div class="achievement-bottom"><small>${Math.round(Math.min(a.value, a.target) * 10) / 10} / ${a.target}${a.earnedDay ? " · " + a.earnedDay : a.infinite && a.earned ? " · rango acumulativo" : ""}</small><strong>+${a.xp} XP · ◈ ${a.coins}</strong></div>${a.config && !a.earned ? `<button class="text-button" data-action="reward-log" data-id="${esc(a.id)}">Preparar registro ↗</button>` : ""}</article>`,
-        )
+        .map((a) => {
+          const info = achievementInfo(a);
+          return `<article class="achievement ${a.earned ? "earned" : ""}" data-achievement="${esc(a.id)}" data-percent="${a.percent}"><div class="mini-heading"><span class="skill-family-label">${esc(skillCatalog[a.family]?.name ?? "Constancia")}</span><b>${a.earned ? "✓" : "◇"}</b></div><h3>${esc(a.name)}</h3><span class="achievement-kind ${info.kind}">${esc(info.label)}</span><p>${esc(a.description)}</p><div class="progress" role="progressbar" aria-label="Progreso del logro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(a.percent)}"><i style="width:${a.percent}%"></i></div><p class="achievement-remaining">${a.earned ? "✓ Conseguido" : `Te ${info.remaining === 1 ? "falta" : "faltan"} ${info.remaining.toLocaleString("es-GT")} ${info.remaining === 1 ? ({ reps: "rep", series: "serie", días: "día" }[info.unit] ?? info.unit) : info.unit}`} · ${Math.floor(a.percent)} %</p><div class="achievement-bottom"><small>${Math.round(Math.min(a.value, a.target) * 10) / 10} / ${a.target} ${info.unit}${a.earnedDay ? " · " + a.earnedDay : a.infinite && a.earned ? " · rango acumulativo" : ""}</small><strong>+${a.xp} XP · ◈ ${a.coins}</strong></div>${a.config && !a.earned ? `<button class="text-button" data-action="reward-log" data-id="${esc(a.id)}">Preparar registro ↗</button>` : ""}</article>`;
+        })
         .join("") ||
       '<p class="note">Sin coincidencias. Prueba otro filtro.</p>'
     }${results.length > achievementLimit ? `<button class="secondary wide" data-action="reward-more">Ver más logros (${Math.min(achievementLimit, results.length)} / ${results.length})</button>` : ""}</div>`;
@@ -79,7 +80,18 @@ export function createRewardUI(ctx) {
     const families = [
       ...new Set(w.achievements.achievements.map((a) => a.family)),
     ];
-    return `${profileFilter ? `<p class="note">Ficha: ${esc(profileFilter.name)} <button class="text-button" data-action="reward-clear-profile">Ver todos</button></p>` : ""}<p class="note">Rutas acumulativas sin límite y recompensas automáticas por cada rango. Las fichas infinitas muestran el último rango conseguido y el siguiente; las recompensas incluyen todos los rangos anteriores. Los logros de técnica se otorgan una vez por hito. Los hitos de mejor hold usan una serie; las rutas de volumen sí acumulan segundos. Tuck, advanced tuck y full tienen logros distintos; los hitos de técnica solo cuentan series sin asistencia. Las rutas acumulativas indican cuándo incluyen asistencia. Las correcciones recalculan los premios.</p><label class="field">Buscar logro<input id="achievement-query" type="search" autocomplete="off" value="${esc(query)}" placeholder="Front lever Full, pull-ups…"></label><div class="row"><label class="field">Ejercicio<select id="achievement-family"><option value="all">Todos</option>${families.map((f) => `<option value="${f}" ${family === f ? "selected" : ""}>${esc(skillCatalog[f]?.name ?? "Constancia")}</option>`).join("")}</select></label><label class="field">Mostrar<select id="achievement-status">${[
+    return `${profileFilter ? `<p class="note">Ficha: ${esc(profileFilter.name)} <button class="text-button" data-action="reward-clear-profile">Ver todos</button></p>` : ""}<p class="note">Siempre hay un próximo rango: avanza con técnica, práctica acumulada o constancia.</p><label class="field">Buscar logro<input id="achievement-query" type="search" autocomplete="off" value="${esc(query)}" placeholder="Front lever Full, pull-ups…"></label><div class="row achievement-controls"><label class="field">Ordenar<select id="achievement-order">${[
+      ["nearest", "Más cercanos"],
+      ["exercise", "Por ejercicio"],
+      ["xp", "Mayor XP"],
+    ]
+      .map(
+        ([id, name]) =>
+          `<option value="${id}" ${order === id ? "selected" : ""}>${name}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><label class="field">Mostrar<select id="achievement-status">${[
       ["next", "Pendientes"],
       ["earned", "Conseguidos"],
       ["all", "Todos"],
@@ -90,8 +102,20 @@ export function createRewardUI(ctx) {
       )
       .join(
         "",
-      )}</select></label></div><div id="achievement-results">${achievementRows(w)}</div>`;
+      )}</select></label></div><details id="achievement-filters" class="earning-rules" ${filtersOpen ? "open" : ""}><summary>Filtros y criterios${family !== "all" || achievementKind !== "all" ? " · activos" : ""}</summary><div class="row"><label class="field">Ejercicio<select id="achievement-family"><option value="all">Todos</option>${families.map((f) => `<option value="${f}" ${family === f ? "selected" : ""}>${esc(skillCatalog[f]?.name ?? "Constancia")}</option>`).join("")}</select></label><label class="field">Tipo<select id="achievement-kind">${[
+      ["all", "Todos"],
+      ["technique", "Técnica"],
+      ["dedication", "Dedicación"],
+    ]
+      .map(
+        ([id, name]) =>
+          `<option value="${id}" ${achievementKind === id ? "selected" : ""}>${name}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label></div><p class="note">Más cercanos compara el porcentaje completado entre todos los ejercicios filtrados. Lo que falta corresponde a esa ruta: una mejor serie, tu mejor día o un total acumulado; no siempre se suma a tu récord.</p><p class="note">Técnica: escala orientativa de Reps, de Inicial 1/5 a Élite 5/5, según movimiento, variante y objetivo de reps, tiempo o lastre. La asistencia reduce un grado; los movimientos propios sin criterio quedan sin clasificar. Es distinta de la dificultad 1–5 que eliges para la XP de una serie. Dedicación reconoce volumen y constancia, sin asignarles dificultad técnica. Estas etiquetas no cambian requisitos ni recompensas.</p><p class="note">Las rutas infinitas muestran el último rango ganado y el próximo; las recompensas incluyen todos los anteriores. Los hitos de mejor hold usan una sola serie; volumen acumula segundos. Tuck, advanced tuck y full tienen hitos separados. Los hitos fijos de técnica requieren series sin asistencia; cada ruta infinita conserva su equipo y asistencia. Las correcciones recalculan los premios.</p></details><div id="achievement-results">${achievementRows(w)}</div>`;
   }
+
   function store(w) {
     return `<p class="note">Cofres de títulos cosméticos, solo con monedas ganadas con tu progreso.</p>${!themeReady(s(), theme) ? '<p class="note danger">Este catálogo necesita un título de cada rareza en el tema elegido. Complétalo en Ajustes → Importar títulos. No se redistribuyen las probabilidades.</p>' : ""}<section class="chest-shop"><div class="chest-illustration" aria-hidden="true"><svg width="88" height="76" viewBox="0 0 64 56"><path d="M6 23V13q0-7 7-7h38q7 0 7 7v10" fill="#d6b270" stroke="#6d522c" stroke-width="3"/><path d="M6 23h52v25H6z" fill="#ad7b39" stroke="#6d522c" stroke-width="3"/><path d="M17 7v40M47 7v40" stroke="#e6ce8d" stroke-width="5"/><path d="M26 20h12v13H26z" fill="#f0d786" stroke="#6d522c" stroke-width="2"/><circle cx="32" cy="26" r="2" fill="#6d522c"/></svg><span>✦</span></div><h3>Cofre de títulos</h3><p>Un título por apertura · ◈ ${CHEST_PRICE}</p><label class="field">Tema<select id="chest-theme">${THEMES.map(([id, name]) => `<option value="${id}" ${theme === id ? "selected" : ""} ${!themeReady(s(), id) ? "disabled" : ""}>${name}${themeReady(s(), id) ? "" : " · faltan rarezas"}</option>`).join("")}</select></label><p class="note">Título repetido: devuelve 25 monedas. Cada título de la rareza y tema elegidos tiene la misma probabilidad.</p><button class="primary wide" data-action="reward-roll" ${w.balance < CHEST_PRICE || busy || !themeReady(s(), theme) ? "disabled" : ""}>${busy ? "Abriendo…" : `Abrir cofre · ◈ ${CHEST_PRICE}`}</button><p class="note">${w.balance < CHEST_PRICE ? `Te faltan ${money(CHEST_PRICE - w.balance)} monedas.` : "La compra se guarda antes de revelar el título."}</p></section>${reveal ? resultCard(reveal) : ""}<section><h3>Probabilidades por apertura</h3><table class="odds-table"><thead><tr><th>Rareza</th><th>Probabilidad</th><th>Referencia</th></tr></thead><tbody>${RARITIES.map((r) => `<tr><td><span class="rarity ${r.id}">${r.name}</span></td><td>${r.percent}</td><td>${r.odds}</td></tr>`).join("")}</tbody></table><p class="note">Porcentajes, no probabilidades decimales: 0.001 % = 1 de 100000. Cada apertura es independiente, sin garantía ni aumento oculto de suerte. Las probabilidades suman 100 %; el tema no las cambia.</p></section>${earnings(w)}`;
   }
@@ -266,10 +290,14 @@ export function createRewardUI(ctx) {
       profileFilter = null;
     }
     if (id === "achievement-status") status = e.target.value;
+    if (id === "achievement-order") order = e.target.value;
+    if (id === "achievement-kind") achievementKind = e.target.value;
     if (id === "inventory-rarity") inventoryRarity = e.target.value;
     if (id === "inventory-theme") inventoryTheme = e.target.value;
     if (
       [
+        "achievement-order",
+        "achievement-kind",
         "achievement-family",
         "achievement-status",
         "inventory-rarity",
@@ -278,12 +306,21 @@ export function createRewardUI(ctx) {
     )
       open();
   });
+  document.querySelector("#sheet").addEventListener(
+    "toggle",
+    (e) => {
+      if (e.target.id === "achievement-filters") filtersOpen = e.target.open;
+    },
+    true,
+  );
   return {
     open,
     openForExercise(p) {
       profileFilter = p;
       family = p.family;
       status = "all";
+      achievementKind = "all";
+      order = "nearest";
       query = "";
       achievementLimit = 24;
       open("achievements");

@@ -3823,3 +3823,29 @@ header .local {
 .achievement-bottom {
   align-items: baseline;
 }
+
+.achievement-kind {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #eef0f5;
+  color: #43556c;
+}
+.achievement-kind.dedication {
+  background: #f3eee3;
+  color: #735c35;
+}
+.achievement p.achievement-remaining {
+  color: #22251e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 360px) {
+  .achievement-controls {
+    flex-direction: column;
+    gap: 0;
+  }
+}
